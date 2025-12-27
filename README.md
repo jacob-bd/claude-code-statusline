@@ -50,7 +50,7 @@ When you see **yellow**, autocompact is approaching. When you see **red**, you'r
 1. **Download the script:**
    ```bash
    mkdir -p ~/.claude
-   curl -o ~/.claude/statusline-command.sh https://raw.githubusercontent.com/jbendavi/claude-code-statusline/main/statusline-command.sh
+   curl -o ~/.claude/statusline-command.sh https://raw.githubusercontent.com/jacob-bd/claude-code-statusline/main/statusline-command.sh
    chmod +x ~/.claude/statusline-command.sh
    ```
 
