@@ -12,9 +12,7 @@ A custom statusline script for [Claude Code](https://claude.com/claude-code) tha
 
 ## Screenshot
 
-```
-[17:30:45] Opus 4.5 | default | myproject on main*+ | [████████████████░░░░] 78% ctx | $2.11
-```
+![Claude Code Statusline](screenshot.png)
 
 ## Installation
 
