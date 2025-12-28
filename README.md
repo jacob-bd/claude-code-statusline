@@ -107,9 +107,28 @@ We compensate by adding a static overhead estimate (~53k by default). This gets 
 
 **Known issue:** There are [multiple open GitHub issues](https://github.com/anthropics/claude-code/issues/516) requesting Anthropic to expose total context usage in the statusline JSON. Upvote if you want this fixed properly!
 
-### MCP Variability
+### Calculating Your Own Overhead
 
-If you frequently enable/disable MCP servers, you may need to adjust `STATIC_OVERHEAD` in the script. Run `/context` in Claude Code to see your actual breakdown and tune accordingly.
+To find the right `STATIC_OVERHEAD` for your setup:
+
+1. Run `/context` in Claude Code
+2. Add up everything **except** Messages:
+   ```
+   System prompt:  3,000
+   System tools:  16,000
+   MCP tools:     33,500  (varies based on your MCPs)
+   Custom agents:     50
+   Memory files:     494
+   ─────────────────────
+   STATIC_OVERHEAD = 53,044 → round to 53000
+   ```
+
+3. Edit the script and set your value:
+   ```bash
+   STATIC_OVERHEAD=53000
+   ```
+
+**Tip:** If you frequently enable/disable MCP servers, you may need to adjust this value. The MCP tools line in `/context` shows the biggest variable component.
 
 ## How It Works
 
