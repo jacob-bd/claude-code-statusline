@@ -65,20 +65,25 @@ if [[ "$total_cost" != "0" ]] && [[ "$total_cost" != "null" ]]; then
 fi
 
 # Calculate context window usage with visual progress bar
+# Note: JSON current_usage only includes messages, not system/tools/MCP overhead
+# We estimate ~53k static overhead (system prompt ~3k + tools ~16k + MCP ~33k + other ~1k)
+# Adjust STATIC_OVERHEAD if you disable MCPs (set to ~20k without MCP)
+STATIC_OVERHEAD=53000
+
 context_info=""
 usage=$(echo "$input" | jq '.context_window.current_usage')
 if [[ "$usage" != "null" ]]; then
-    current=$(echo "$usage" | jq '.input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens')
+    messages=$(echo "$usage" | jq '.input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens')
+    current=$((messages + STATIC_OVERHEAD))
     size=$(echo "$input" | jq '.context_window.context_window_size')
     if [[ "$current" != "null" ]] && [[ "$size" != "null" ]] && [[ "$size" -gt 0 ]]; then
         pct=$((current * 100 / size))
 
-        # Color code based on usage (conservative thresholds to account for hidden overhead)
-        # JSON only shows ~50% of actual context (missing system/tools/MCP)
-        # Green <25% (real ~50%), Yellow 25-40% (real ~65-80%), Red >40% (real ~80%+ autocompact zone)
-        if [[ $pct -lt 25 ]]; then
+        # Color code based on usage
+        # Green <50%, Yellow 50-75%, Red >75% (approaching autocompact at ~80%)
+        if [[ $pct -lt 50 ]]; then
             color='\033[32m'  # green
-        elif [[ $pct -lt 40 ]]; then
+        elif [[ $pct -lt 75 ]]; then
             color='\033[33m'  # yellow
         else
             color='\033[31m'  # red

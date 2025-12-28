@@ -5,7 +5,7 @@ A custom statusline script for [Claude Code](https://claude.com/claude-code) tha
 ## Features
 
 - **Accurate Cost Display**: Shows total session cost across all models (Opus, Sonnet, Haiku combined)
-- **Context Usage Bar**: Visual progress bar with conservative thresholds to warn before autocompact
+- **Context Usage Bar**: Visual progress bar with static overhead estimation for better accuracy
 - **Git Integration**: Shows current branch and status indicators (`*` uncommitted, `+` staged, `?` untracked)
 - **Timestamp**: Current time for each update
 - **Model & Style**: Shows active model and output style
@@ -13,20 +13,8 @@ A custom statusline script for [Claude Code](https://claude.com/claude-code) tha
 ## Screenshot
 
 ```
-[17:30:45] Opus 4.5 | default | myproject on main*+ | [████████░░░░░░░░░░░░] 32% ctx | $2.11
+[17:30:45] Opus 4.5 | default | myproject on main*+ | [████████████████░░░░] 78% ctx | $2.11
 ```
-
-## Why Conservative Context Thresholds?
-
-The Claude Code statusline JSON only exposes ~50% of actual context usage (messages only, missing system prompt, tools, and MCP overhead). To compensate:
-
-| Statusline Shows | Actual Context | Color  |
-|------------------|----------------|--------|
-| 0-25%            | ~50%           | Green  |
-| 25-40%           | ~65-80%        | Yellow |
-| 40%+             | ~80%+ (autocompact zone) | Red |
-
-When you see **yellow**, autocompact is approaching. When you see **red**, you're in the danger zone.
 
 ## Installation
 
@@ -70,14 +58,29 @@ When you see **yellow**, autocompact is approaching. When you see **red**, you'r
 
 ## Customization
 
-### Adjust Context Thresholds
+### Adjust Static Overhead
 
-Edit the script and modify these lines to change when colors trigger:
+The script adds ~53k tokens to account for hidden overhead (system prompt, tools, MCPs). Edit line ~75 in the script:
 
 ```bash
-if [[ $pct -lt 25 ]]; then
+STATIC_OVERHEAD=53000  # Default: typical setup with MCPs enabled
+```
+
+**Recommended values:**
+| Setup | STATIC_OVERHEAD |
+|-------|-----------------|
+| Full MCPs enabled | 53000 |
+| Some MCPs disabled | 35000-45000 |
+| MCPs disabled | 20000 |
+
+### Adjust Color Thresholds
+
+Edit these lines to change when colors trigger:
+
+```bash
+if [[ $pct -lt 50 ]]; then
     color='\033[32m'  # green
-elif [[ $pct -lt 40 ]]; then
+elif [[ $pct -lt 75 ]]; then
     color='\033[33m'  # yellow
 else
     color='\033[31m'  # red
@@ -92,34 +95,38 @@ Modify `bar_width=20` to your preferred width.
 
 ### Context Bar Accuracy
 
-The context percentage shown is **not the full picture**. Claude Code's statusline JSON only provides `current_usage` which represents approximately 50% of actual context:
+Claude Code's statusline JSON only provides `current_usage` (message tokens), not the full context including:
 
-**What's included in the JSON:**
-- Message tokens (your conversation)
-- Cache creation/read tokens
-
-**What's NOT included:**
 - System prompt (~3k tokens)
 - System tools (~16k tokens)
 - MCP tools (can be 30k+ tokens depending on your setup)
 - Custom agents
 - Memory files
 
-This means when the statusline shows 30%, your actual context might be 60%+. The conservative color thresholds compensate for this hidden overhead.
+We compensate by adding a static overhead estimate (~53k by default). This gets you closer to accurate, but not perfect.
+
+**Known issue:** There are [multiple open GitHub issues](https://github.com/anthropics/claude-code/issues/516) requesting Anthropic to expose total context usage in the statusline JSON. Upvote if you want this fixed properly!
 
 ### MCP Variability
 
-If you frequently enable/disable MCP servers, the hidden overhead changes. The thresholds are tuned for a typical setup with MCPs enabled. With MCPs disabled, you have more headroom than the colors suggest.
+If you frequently enable/disable MCP servers, you may need to adjust `STATIC_OVERHEAD` in the script. Run `/context` in Claude Code to see your actual breakdown and tune accordingly.
 
 ## How It Works
 
 The script receives JSON input from Claude Code containing:
 - `cost.total_cost_usd` - Accurate total cost across all models
-- `context_window.current_usage` - Current context token usage
+- `context_window.current_usage` - Current context token usage (messages only)
+- `context_window.context_window_size` - Total context window (200k for most models)
 - `workspace` - Directory information
 - `model` - Active model info
 
-It processes this data and outputs a formatted statusline with ANSI colors.
+It adds the static overhead to `current_usage` and calculates the percentage against the full context window.
+
+## Related Issues
+
+- [#516](https://github.com/anthropics/claude-code/issues/516) - "Always show available context percentage" (109+ upvotes)
+- [#14058](https://github.com/anthropics/claude-code/issues/14058) - "Include actual context window usage in statusline JSON"
+- [#13776](https://github.com/anthropics/claude-code/issues/13776) - "Expose full context usage in statusline API"
 
 ## License
 
