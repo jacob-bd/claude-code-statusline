@@ -145,6 +145,12 @@ It adds the static overhead to `current_usage` and calculates the percentage aga
 - [#14058](https://github.com/anthropics/claude-code/issues/14058) - "Include actual context window usage in statusline JSON"
 - [#13776](https://github.com/anthropics/claude-code/issues/13776) - "Expose full context usage in statusline API"
 
+## Vibe Coding Alert
+
+Full transparency: this project was built by a non-developer using AI coding assistants. If you're an experienced shell scripter, you might look at this code and wince. That's okay.
+
+The goal here was to scratch an itch - better cost and context tracking for Claude Code - and learn along the way. The code works, but it's likely missing patterns, optimizations, or elegance that only years of experience can provide.
+
 ## License
 
 MIT License - feel free to modify and share!
