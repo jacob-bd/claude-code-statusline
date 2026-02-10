@@ -65,19 +65,46 @@ if [[ "$total_cost" != "0" ]] && [[ "$total_cost" != "null" ]]; then
 fi
 
 # Calculate context window usage with visual progress bar
-# Note: JSON current_usage only includes messages, not system/tools/MCP overhead
-# We estimate ~53k static overhead (system prompt ~3k + tools ~16k + MCP ~33k + other ~1k)
-# Adjust STATIC_OVERHEAD if you disable MCPs (set to ~20k without MCP)
-STATIC_OVERHEAD=53000
+# Uses cache-based tokens which include all overhead (system prompt, tools, MCP)
+# Falls back to input_tokens + static overhead for first message or old versions
+STATIC_OVERHEAD=53000  # Fallback only: used when cache data unavailable
 
 context_info=""
 usage=$(echo "$input" | jq '.context_window.current_usage')
 if [[ "$usage" != "null" ]]; then
-    messages=$(echo "$usage" | jq '.input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens')
-    current=$((messages + STATIC_OVERHEAD))
+    # Extract token fields (default to 0 if missing)
+    cache_creation=$(echo "$usage" | jq '.cache_creation_input_tokens // 0')
+    cache_read=$(echo "$usage" | jq '.cache_read_input_tokens // 0')
+    input_tokens=$(echo "$usage" | jq '.input_tokens // 0')
+
+    # Primary: cache-based (includes all overhead naturally)
+    # Fallback: input_tokens + static overhead (for first message or old versions)
+    cache_total=$((cache_creation + cache_read))
+    if [[ $cache_total -gt 0 ]]; then
+        actual_tokens=$cache_total
+    else
+        actual_tokens=$((input_tokens + STATIC_OVERHEAD))
+    fi
+
     size=$(echo "$input" | jq '.context_window.context_window_size')
-    if [[ "$current" != "null" ]] && [[ "$size" != "null" ]] && [[ "$size" -gt 0 ]]; then
-        pct=$((current * 100 / size))
+    if [[ "$size" != "null" ]] && [[ "$size" -gt 0 ]]; then
+        pct=$((actual_tokens * 100 / size))
+        # Cap at 100%
+        if [[ $pct -gt 100 ]]; then
+            pct=100
+        fi
+
+        # Calculate remaining tokens
+        remaining=$((size - actual_tokens))
+        if [[ $remaining -lt 0 ]]; then
+            remaining=0
+        fi
+        # Format remaining as human-readable (e.g., "79k")
+        if [[ $remaining -ge 1000 ]]; then
+            remaining_display="$((remaining / 1000))k"
+        else
+            remaining_display="${remaining}"
+        fi
 
         # Color code based on usage
         # Green <50%, Yellow 50-75%, Red >75% (approaching autocompact at ~80%)
@@ -104,7 +131,7 @@ if [[ "$usage" != "null" ]]; then
         done
         bar="${bar}]"
 
-        context_info=" $(printf "${color}")${bar}$(printf '\033[0m') ${pct}%"
+        context_info=" $(printf "${color}")${bar}$(printf '\033[0m') ${pct}% ${remaining_display} left"
     fi
 fi
 
