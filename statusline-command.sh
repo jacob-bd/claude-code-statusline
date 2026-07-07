@@ -391,6 +391,19 @@ render_cache_read() {
     fi
 }
 
+render_cache_write() {
+    local read=$J_OLD_CACHE_READ create=$J_OLD_CACHE_CREATE input=$J_OLD_INPUT
+    [[ -z "$create" || "$create" -le 0 ]] 2>/dev/null && return
+    local fmt; fmt=$(format_tokens "$create")
+    local denom=$((read + create + input))
+    if [[ $denom -gt 0 ]]; then
+        local pct; pct=$(awk -v c="$create" -v d="$denom" 'BEGIN{printf "%.0f", (c/d)*100}')
+        printf "Cache Write: %s (%s%%)" "$fmt" "$pct"
+    else
+        printf "Cache Write: %s" "$fmt"
+    fi
+}
+
 # ── Main render loop ──────────────────────────────────────────────────
 
 TERM_WIDTH=$(get_terminal_width)
@@ -443,6 +456,7 @@ for line_segs in "${lines_arr[@]}"; do
             tokens_total) output=$(render_tokens_total) ;;
             cache_hit_rate) output=$(render_cache_hit_rate) ;;
             cache_read) output=$(render_cache_read) ;;
+            cache_write) output=$(render_cache_write) ;;
         esac
 
         if [[ -n "$output" ]]; then

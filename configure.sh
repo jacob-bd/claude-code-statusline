@@ -11,7 +11,7 @@ CONFIG_FILE="$HOME/.claude/statusline-config.json"
 
 # All available segments: id|label|preview (ANSI-colored)
 # Using indexed arrays for bash 3.2 compatibility (macOS)
-SEGMENT_COUNT=27
+SEGMENT_COUNT=28
 SEG_ID=()
 SEG_LABEL=()
 SEG_PREVIEW=()
@@ -43,6 +43,7 @@ SEG_ID[23]="tokens_cached"; SEG_LABEL[23]="Tokens Cached";   SEG_PREVIEW[23]="Ca
 SEG_ID[24]="tokens_total"; SEG_LABEL[24]="Tokens Total";     SEG_PREVIEW[24]="Tok: 30.6k"
 SEG_ID[25]="cache_hit_rate"; SEG_LABEL[25]="Cache Hit Rate"; SEG_PREVIEW[25]="Cache Hit: 87.0%"
 SEG_ID[26]="cache_read"; SEG_LABEL[26]="Cache Read"; SEG_PREVIEW[26]="Cache Read: 12k (64%)"
+SEG_ID[27]="cache_write"; SEG_LABEL[27]="Cache Write"; SEG_PREVIEW[27]="Cache Write: 3k (16%)"
 
 DEFAULT_SEGMENTS=(timestamp model style directory git context cost quota_5h quota_7d)
 
