@@ -32,7 +32,7 @@ For details on recent changes, see the [Changelog](CHANGELOG.md).
 Run this one-line command in your terminal. It will download the scripts, update your Claude Code settings, and automatically launch the configuration wizard:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/jacob-bd/claude-code-statusline/main/install.sh | bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/jacob-bd/claude-code-statusline/main/install.sh)"
 ```
 
 *Note: Restart Claude Code after installation to apply the changes.*
