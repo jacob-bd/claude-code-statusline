@@ -89,7 +89,7 @@ bash ~/.claude/configure.sh
 | **Quota 5h % only**| `5h 24%` | Subscription 5-hour rate limit percentage only (saves space) |
 | **Quota 7d** | `7d [████░░] 41%` | Subscription 7-day rate limit (Pro/Max) |
 | **Quota 7d % only**| `7d 41%` | Subscription 7-day rate limit percentage only (saves space) |
-| **Duration** | `⏱ 2m34s` | Total time waiting for API responses |
+| **Duration** | `⏱ 2m34s` | Total wall-clock session time (typing, tool use, and API calls combined) |
 | **Lines changed** | `+48/-12` | Lines of code added/removed |
 | **Session name** | `📌 my-session` | Custom session name |
 | **Thinking** | `💭 on` | Extended thinking status |
