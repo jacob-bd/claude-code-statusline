@@ -10,7 +10,7 @@
 input=$(cat)
 
 # ── Load configuration ────────────────────────────────────────────────
-CONFIG_FILE="$HOME/.claude/statusline-config.json"
+CONFIG_FILE="${STATUSLINE_CONFIG_FILE:-$HOME/.claude/statusline-config.json}"
 DEFAULT_SEGMENTS='["timestamp","model","style","directory","git","context","cost","quota_5h","quota_7d"]'
 
 if [[ -f "$CONFIG_FILE" ]]; then
