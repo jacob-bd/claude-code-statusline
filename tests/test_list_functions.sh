@@ -127,3 +127,21 @@ if [[ "${enabled_segments[*]}" != "${DEFAULT_SEGMENTS[*]}" || $cursor -ne 0 ]]; 
     exit 1
 fi
 echo "PASS: reset_to_defaults restores the default list and resets the cursor"
+
+# insert_newline_at
+enabled_segments=(a b c)
+cursor=0
+insert_newline_at 1
+if [[ "${enabled_segments[*]}" != "a b newline c" || $cursor -ne 2 ]]; then
+    echo "FAIL: insert_newline_at(1) expected 'a b newline c' cursor=2, got '${enabled_segments[*]}' cursor=$cursor"
+    exit 1
+fi
+echo "PASS: insert_newline_at inserts a break after the given index and moves the cursor past it"
+
+enabled_segments=(a b c)
+insert_newline_at 2
+if [[ "${enabled_segments[*]}" != "a b c newline" ]]; then
+    echo "FAIL: insert_newline_at(2) at the last index expected 'a b c newline', got '${enabled_segments[*]}'"
+    exit 1
+fi
+echo "PASS: insert_newline_at appends a trailing break when run on the last row"

@@ -165,6 +165,18 @@ remove_segment_at() {
     return 0
 }
 
+insert_newline_at() {
+    local idx=$1
+    local new=()
+    local i
+    for ((i=0; i<${#enabled_segments[@]}; i++)); do
+        new+=("${enabled_segments[$i]}")
+        [[ $i -eq $idx ]] && new+=("newline")
+    done
+    enabled_segments=("${new[@]}")
+    cursor=$((idx+1))
+}
+
 append_segment() {
     local id="$1"
     enabled_segments+=("$id")
@@ -343,7 +355,7 @@ draw_main_screen() {
     if [[ "$mode" == "move" ]]; then
         printf '  Your statusline   \033[33m◆ moving \xe2\x80\x94 \xe2\x86\x91/\xe2\x86\x93 reposition, Enter/Esc to drop\033[0m\n\n'
     else
-        printf '  Your statusline   \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Enter move \xc2\xb7 a add \xc2\xb7 d remove\n\n'
+        printf '  Your statusline   \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Enter move \xc2\xb7 a add \xc2\xb7 d remove \xc2\xb7 n split line here\n\n'
     fi
 
     local i=0
@@ -440,6 +452,9 @@ main() {
             CHAR:a) mode="picker"; picker_cursor=0 ;;
             CHAR:d)
                 [[ ${#enabled_segments[@]} -gt 0 ]] && remove_segment_at "$cursor"
+                ;;
+            CHAR:n)
+                [[ ${#enabled_segments[@]} -gt 0 ]] && insert_newline_at "$cursor"
                 ;;
             CHAR:r) reset_to_defaults ;;
             CHAR:s)
