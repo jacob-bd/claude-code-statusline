@@ -59,7 +59,8 @@ eval $(echo "$input" | jq -r '
     @sh "J_QUOTA_5H_RESET=\(.rate_limits.five_hour.resets_at // "")",
     @sh "J_QUOTA_7D_RESET=\(.rate_limits.seven_day.resets_at // "")",
     @sh "J_VIM_MODE=\(.vim.mode // "")",
-    @sh "J_WORKTREE=\(.workspace.git_worktree // "")"
+    @sh "J_WORKTREE=\(.workspace.git_worktree // "")",
+    @sh "J_API_DUR_MS=\(.cost.total_api_duration_ms // 0)"
 ')
 
 # Fallbacks for older Claude Code payload format where total input/output might not be top-level
@@ -449,6 +450,19 @@ render_worktree() {
     printf "🌳 %s" "$J_WORKTREE"
 }
 
+render_api_duration() {
+    local sec
+    [[ -z "$J_API_DUR_MS" || "$J_API_DUR_MS" == "null" || "$J_API_DUR_MS" == "0" ]] && return
+    sec=$((J_API_DUR_MS / 1000))
+    if [[ $sec -ge 3600 ]]; then
+        printf "⏱ api %dh%dm" "$((sec/3600))" "$(((sec%3600)/60))"
+    elif [[ $sec -ge 60 ]]; then
+        printf "⏱ api %dm%ds" "$((sec/60))" "$((sec%60))"
+    else
+        printf "⏱ api %ds" "$sec"
+    fi
+}
+
 # ── Main render loop ──────────────────────────────────────────────────
 
 TERM_WIDTH=$(get_terminal_width)
@@ -506,6 +520,7 @@ for line_segs in "${lines_arr[@]}"; do
             quota_7d_reset) output=$(render_quota_7d_reset) ;;
             vim_mode) output=$(render_vim_mode) ;;
             worktree) output=$(render_worktree) ;;
+            api_duration) output=$(render_api_duration) ;;
         esac
 
         if [[ -n "$output" ]]; then
