@@ -68,6 +68,32 @@ get_preview_for_id() {
     done
 }
 
+get_label_for_id() {
+    local id="$1"
+    local i
+    for ((i=0; i<SEGMENT_COUNT; i++)); do
+        if [[ "${SEG_ID[$i]}" == "$id" ]]; then
+            printf "%s" "${SEG_LABEL[$i]}"
+            return
+        fi
+    done
+}
+
+format_enabled_row() {
+    local idx="$1" id="$2" is_cursor="$3" is_moving="$4"
+    local label preview marker
+    label=$(get_label_for_id "$id")
+    preview=$(get_preview_for_id "$id")
+    if $is_moving; then
+        marker="◆"
+    elif $is_cursor; then
+        marker="▸"
+    else
+        marker=" "
+    fi
+    printf "%s %2d. %-18s %b" "$marker" "$((idx+1))" "$label" "$preview"
+}
+
 load_config() {
     if [[ -f "$CONFIG_FILE" ]]; then
         local segs
