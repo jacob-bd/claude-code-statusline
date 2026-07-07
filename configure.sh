@@ -24,9 +24,9 @@ SEG_ID[3]="style";       SEG_LABEL[3]="Output style";    SEG_PREVIEW[3]="\033[33
 SEG_ID[4]="directory";   SEG_LABEL[4]="Directory";       SEG_PREVIEW[4]="\033[32mmy-project\033[0m"
 SEG_ID[5]="git";         SEG_LABEL[5]="Git status";      SEG_PREVIEW[5]="on \033[35mmain*+\033[0m"
 SEG_ID[6]="context";     SEG_LABEL[6]="Context window";  SEG_PREVIEW[6]="\033[33m[████████░░░░░░░░░░░░]\033[0m 42% 114k left ctx"
-SEG_ID[7]="cost";        SEG_LABEL[7]="API Cost";        SEG_PREVIEW[7]="\033[36m\$0.85\033[0m"
-SEG_ID[8]="quota_5h";    SEG_LABEL[8]="Quota 5h";        SEG_PREVIEW[8]="\033[32m5h [██░░░░░░░░] 24%\033[0m"
-SEG_ID[9]="quota_7d";    SEG_LABEL[9]="Quota 7d";        SEG_PREVIEW[9]="\033[33m7d [████░░░░░░] 41%\033[0m"
+SEG_ID[7]="cost";        SEG_LABEL[7]="API Cost *";        SEG_PREVIEW[7]="\033[36m\$0.85\033[0m"
+SEG_ID[8]="quota_5h";    SEG_LABEL[8]="Quota 5h *";        SEG_PREVIEW[8]="\033[32m5h [██░░░░░░░░] 24%\033[0m"
+SEG_ID[9]="quota_7d";    SEG_LABEL[9]="Quota 7d *";        SEG_PREVIEW[9]="\033[33m7d [████░░░░░░] 41%\033[0m"
 SEG_ID[10]="duration";   SEG_LABEL[10]="Duration";       SEG_PREVIEW[10]="⏱ 2m34s"
 SEG_ID[11]="lines";      SEG_LABEL[11]="Lines changed";  SEG_PREVIEW[11]="\033[32m+48\033[0m/\033[31m-12\033[0m"
 SEG_ID[12]="session";    SEG_LABEL[12]="Session name";   SEG_PREVIEW[12]="📌 my-session"
@@ -34,8 +34,8 @@ SEG_ID[13]="thinking";   SEG_LABEL[13]="Thinking";       SEG_PREVIEW[13]="💭 o
 SEG_ID[14]="version";    SEG_LABEL[14]="Version";        SEG_PREVIEW[14]="v2.1.200"
 SEG_ID[15]="pr";         SEG_LABEL[15]="PR info";        SEG_PREVIEW[15]="PR #42 \033[32m✓\033[0m"
 SEG_ID[16]="context_pct";  SEG_LABEL[16]="Context % only";   SEG_PREVIEW[16]="Context: \033[33m42%\033[0m 114k left"
-SEG_ID[17]="quota_5h_pct"; SEG_LABEL[17]="Quota 5h % only";  SEG_PREVIEW[17]="\033[32m5h 24%\033[0m"
-SEG_ID[18]="quota_7d_pct"; SEG_LABEL[18]="Quota 7d % only";  SEG_PREVIEW[18]="\033[33m7d 41%\033[0m"
+SEG_ID[17]="quota_5h_pct"; SEG_LABEL[17]="Quota 5h % only *";  SEG_PREVIEW[17]="\033[32m5h 24%\033[0m"
+SEG_ID[18]="quota_7d_pct"; SEG_LABEL[18]="Quota 7d % only *";  SEG_PREVIEW[18]="\033[33m7d 41%\033[0m"
 SEG_ID[19]="flex";         SEG_LABEL[19]="Flex spacer";      SEG_PREVIEW[19]="<--->"
 SEG_ID[20]="newline";      SEG_LABEL[20]="New line";         SEG_PREVIEW[20]="[NEWLINE]"
 SEG_ID[21]="tokens_in";    SEG_LABEL[21]="Tokens Input";     SEG_PREVIEW[21]="In: 15.2k"
@@ -45,8 +45,8 @@ SEG_ID[24]="tokens_total"; SEG_LABEL[24]="Tokens Total";     SEG_PREVIEW[24]="To
 SEG_ID[25]="cache_hit_rate"; SEG_LABEL[25]="Cache Hit Rate"; SEG_PREVIEW[25]="Cache Hit: 87.0%"
 SEG_ID[26]="cache_read"; SEG_LABEL[26]="Cache Read"; SEG_PREVIEW[26]="Cache Read: 12k (64%)"
 SEG_ID[27]="cache_write"; SEG_LABEL[27]="Cache Write"; SEG_PREVIEW[27]="Cache Write: 3k (16%)"
-SEG_ID[28]="quota_5h_reset"; SEG_LABEL[28]="Quota 5h Reset"; SEG_PREVIEW[28]="⏳ resets in 2h5m"
-SEG_ID[29]="quota_7d_reset"; SEG_LABEL[29]="Quota 7d Reset"; SEG_PREVIEW[29]="⏳ resets in 2d3h"
+SEG_ID[28]="quota_5h_reset"; SEG_LABEL[28]="Quota 5h Reset *"; SEG_PREVIEW[28]="⏳ resets in 2h5m"
+SEG_ID[29]="quota_7d_reset"; SEG_LABEL[29]="Quota 7d Reset *"; SEG_PREVIEW[29]="⏳ resets in 2d3h"
 SEG_ID[30]="vim_mode"; SEG_LABEL[30]="Vim Mode"; SEG_PREVIEW[30]="🔵 NORMAL"
 SEG_ID[31]="worktree"; SEG_LABEL[31]="Git Worktree"; SEG_PREVIEW[31]="🌳 feature-x"
 SEG_ID[32]="api_duration"; SEG_LABEL[32]="API Duration"; SEG_PREVIEW[32]="⏱ api 1m12s"
@@ -179,6 +179,20 @@ is_multi_allowed() {
     [[ "$1" == "flex" || "$1" == "newline" ]]
 }
 
+# Cost and the quota segments render based on account type (usage-based
+# billing vs. Pro/Max subscription) — at most one side ever shows for a
+# given user. Surface a hint when any of them are enabled so that isn't
+# mistaken for a bug.
+has_starred_segment() {
+    local id
+    for id in "${enabled_segments[@]}"; do
+        case "$id" in
+            cost|quota_5h|quota_7d|quota_5h_pct|quota_7d_pct|quota_5h_reset|quota_7d_reset) return 0 ;;
+        esac
+    done
+    return 1
+}
+
 is_available_to_add() {
     local id="$1"
     is_multi_allowed "$id" && return 0
@@ -276,11 +290,23 @@ JSON
 }
 
 render_live_preview() {
-    local tmp_config cols lines output
+    local tmp_config cols lines output size
     tmp_config=$(mktemp)
     segments_to_json > "$tmp_config"
-    cols=$(tput cols 2>/dev/null || echo 80)
-    lines=$(tput lines 2>/dev/null || echo 24)
+    # `stty size` does a live ioctl query of the controlling terminal and
+    # ignores any exported $COLUMNS/$LINES. `tput cols`/`tput lines` prefer
+    # those env vars when set, so a stale exported $COLUMNS (common after
+    # tmux/pane resizes) would silently make the preview narrower than the
+    # terminal actually is. Only fall back to tput when there's no tty
+    # (e.g. under test, where stty has nothing to query).
+    size=$(stty size 2>/dev/null)
+    if [[ -n "$size" ]]; then
+        lines=${size%% *}
+        cols=${size##* }
+    else
+        cols=$(tput cols 2>/dev/null || echo 80)
+        lines=$(tput lines 2>/dev/null || echo 24)
+    fi
     output=$(build_mock_json | STATUSLINE_CONFIG_FILE="$tmp_config" COLUMNS="$cols" LINES="$lines" bash "$SCRIPT_DIR/statusline-command.sh" 2>/dev/null)
     rm -f "$tmp_config"
     printf '%s' "$output"
@@ -329,6 +355,11 @@ draw_main_screen() {
         printf '  %s\n' "$(format_enabled_row "$i" "$id" "$is_cursor" "$is_moving")"
         i=$((i+1))
     done
+
+    if has_starred_segment; then
+        printf '\n  \033[90m* Cost and Quota are mutually exclusive by design: Cost only shows on\033[0m\n'
+        printf '  \033[90m  usage-based billing; Quota only shows on a Pro/Max subscription.\033[0m\n'
+    fi
 
     printf '\n  \033[1m[a]\033[0m add   \033[1m[r]\033[0m reset to defaults   \033[1m[s]\033[0m save & exit   \033[1m[q]\033[0m quit\n'
 }
