@@ -58,7 +58,8 @@ eval $(echo "$input" | jq -r '
     @sh "J_OLD_TOK_CACHED_READ=\(.context_window.current_usage.cache_read_input_tokens // "")",
     @sh "J_QUOTA_5H_RESET=\(.rate_limits.five_hour.resets_at // "")",
     @sh "J_QUOTA_7D_RESET=\(.rate_limits.seven_day.resets_at // "")",
-    @sh "J_VIM_MODE=\(.vim.mode // "")"
+    @sh "J_VIM_MODE=\(.vim.mode // "")",
+    @sh "J_WORKTREE=\(.workspace.git_worktree // "")"
 ')
 
 # Fallbacks for older Claude Code payload format where total input/output might not be top-level
@@ -443,6 +444,11 @@ render_vim_mode() {
     printf "🔵 %s" "$J_VIM_MODE"
 }
 
+render_worktree() {
+    [[ -z "$J_WORKTREE" || "$J_WORKTREE" == "null" ]] && return
+    printf "🌳 %s" "$J_WORKTREE"
+}
+
 # ── Main render loop ──────────────────────────────────────────────────
 
 TERM_WIDTH=$(get_terminal_width)
@@ -499,6 +505,7 @@ for line_segs in "${lines_arr[@]}"; do
             quota_5h_reset) output=$(render_quota_5h_reset) ;;
             quota_7d_reset) output=$(render_quota_7d_reset) ;;
             vim_mode) output=$(render_vim_mode) ;;
+            worktree) output=$(render_worktree) ;;
         esac
 
         if [[ -n "$output" ]]; then

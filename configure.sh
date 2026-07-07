@@ -11,7 +11,7 @@ CONFIG_FILE="$HOME/.claude/statusline-config.json"
 
 # All available segments: id|label|preview (ANSI-colored)
 # Using indexed arrays for bash 3.2 compatibility (macOS)
-SEGMENT_COUNT=31
+SEGMENT_COUNT=32
 SEG_ID=()
 SEG_LABEL=()
 SEG_PREVIEW=()
@@ -47,6 +47,7 @@ SEG_ID[27]="cache_write"; SEG_LABEL[27]="Cache Write"; SEG_PREVIEW[27]="Cache Wr
 SEG_ID[28]="quota_5h_reset"; SEG_LABEL[28]="Quota 5h Reset"; SEG_PREVIEW[28]="⏳ resets in 2h5m"
 SEG_ID[29]="quota_7d_reset"; SEG_LABEL[29]="Quota 7d Reset"; SEG_PREVIEW[29]="⏳ resets in 2d3h"
 SEG_ID[30]="vim_mode"; SEG_LABEL[30]="Vim Mode"; SEG_PREVIEW[30]="🔵 NORMAL"
+SEG_ID[31]="worktree"; SEG_LABEL[31]="Git Worktree"; SEG_PREVIEW[31]="🌳 feature-x"
 
 DEFAULT_SEGMENTS=(timestamp model style directory git context cost quota_5h quota_7d)
 
