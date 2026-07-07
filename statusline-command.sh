@@ -68,6 +68,7 @@ J_TOK_CACHED=$(( ${J_OLD_TOK_CACHED_CREATE:-0} + ${J_OLD_TOK_CACHED_READ:-0} ))
 # ── Terminal Width ────────────────────────────────────────────────────
 get_terminal_width() {
     if [[ -n "$STATUSLINE_WIDTH" ]]; then echo "$STATUSLINE_WIDTH"; return; fi
+    if [[ -n "$COLUMNS" && "$COLUMNS" =~ ^[0-9]+$ ]]; then echo "$COLUMNS"; return; fi
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then echo ""; return; fi
     
     local pid=$$
