@@ -56,7 +56,8 @@ eval $(echo "$input" | jq -r '
     @sh "J_OLD_TOK_OUT=\(.context_window.current_usage.output_tokens // "")",
     @sh "J_OLD_TOK_CACHED_CREATE=\(.context_window.current_usage.cache_creation_input_tokens // "")",
     @sh "J_OLD_TOK_CACHED_READ=\(.context_window.current_usage.cache_read_input_tokens // "")",
-    @sh "J_QUOTA_5H_RESET=\(.rate_limits.five_hour.resets_at // "")"
+    @sh "J_QUOTA_5H_RESET=\(.rate_limits.five_hour.resets_at // "")",
+    @sh "J_QUOTA_7D_RESET=\(.rate_limits.seven_day.resets_at // "")"
 ')
 
 # Fallbacks for older Claude Code payload format where total input/output might not be top-level
@@ -428,6 +429,14 @@ render_quota_5h_reset() {
     printf "⏳ resets in %s" "$(format_countdown "$delta")"
 }
 
+render_quota_7d_reset() {
+    [[ -z "$J_QUOTA_7D_RESET" || "$J_QUOTA_7D_RESET" == "null" ]] && return
+    local now delta
+    now=$(date +%s)
+    delta=$(( ${J_QUOTA_7D_RESET%.*} - now ))
+    printf "⏳ resets in %s" "$(format_countdown "$delta")"
+}
+
 # ── Main render loop ──────────────────────────────────────────────────
 
 TERM_WIDTH=$(get_terminal_width)
@@ -482,6 +491,7 @@ for line_segs in "${lines_arr[@]}"; do
             cache_read) output=$(render_cache_read) ;;
             cache_write) output=$(render_cache_write) ;;
             quota_5h_reset) output=$(render_quota_5h_reset) ;;
+            quota_7d_reset) output=$(render_quota_7d_reset) ;;
         esac
 
         if [[ -n "$output" ]]; then
