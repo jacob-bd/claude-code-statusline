@@ -590,26 +590,50 @@ for line_segs in "${lines_arr[@]}"; do
         max_len=$((TERM_WIDTH - 6))
         
         if [[ $vlen -gt $max_len && $max_len -gt 3 ]]; then
-            # Truncate using awk to handle ANSI codes properly
-            line_out=$(echo -n "$line_out" | awk -v max="$((max_len - 3))" '
+            # Truncate using awk to handle ANSI codes and multi-byte UTF-8
+            # characters (block-drawing bars, emoji) properly. LC_ALL=C forces
+            # byte-oriented string handling so awk never attempts locale-aware
+            # multibyte decoding (which can abort mid-sequence on some awk
+            # builds); UTF-8 lead-byte ranges are classified explicitly so a
+            # multi-byte character is always counted and copied as one unit,
+            # never split across the truncation boundary.
+            line_out=$(echo -n "$line_out" | LC_ALL=C awk -v max="$((max_len - 3))" '
+            BEGIN {
+                lead2 = sprintf("%c", 194); lead3 = sprintf("%c", 224)
+                lead4 = sprintf("%c", 240); leadmax = sprintf("%c", 245)
+            }
             {
                 ansi = 0
                 len = 0
                 out = ""
-                for(i=1; i<=length($0); i++) {
+                n = length($0)
+                i = 1
+                while (i <= n) {
                     c = substr($0, i, 1)
-                    if (c == "\033") ansi = 1
-                    
-                    if (ansi == 0) len++
-                    
-                    if (ansi == 0 && len > max) {
+                    if (ansi == 1) {
+                        out = out c
+                        if (c == "m") ansi = 0
+                        i++
+                        continue
+                    }
+                    if (c == "\033") {
+                        ansi = 1
+                        out = out c
+                        i++
+                        continue
+                    }
+                    seqlen = 1
+                    if (c >= lead4 && c < leadmax) seqlen = 4
+                    else if (c >= lead3 && c < lead4) seqlen = 3
+                    else if (c >= lead2 && c < lead3) seqlen = 2
+                    len++
+                    if (len > max) {
                         out = out "..."
                         break
                     }
-                    out = out c
-                    if (ansi == 1 && c == "m") ansi = 0
+                    out = out substr($0, i, seqlen)
+                    i += seqlen
                 }
-                # append reset to be safe
                 print out "\033[0m"
             }')
         fi
