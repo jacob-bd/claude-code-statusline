@@ -1,151 +1,120 @@
-# Claude Code Statusline
+# Claude Code Configurable Statusline
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
 
-A custom statusline script for [Claude Code](https://claude.com/claude-code) that provides accurate cost tracking and context usage warnings.
+A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 12 other configurable segments.
+
+For details on recent changes, see the [Changelog](CHANGELOG.md).
 
 ## Features
 
-- **Accurate Cost Display**: Shows total session cost across all models (Opus, Sonnet, Haiku combined)
-- **Context Usage Bar**: Visual progress bar with cache-based accuracy showing percentage and remaining tokens
-- **Git Integration**: Shows current branch and status indicators (`*` uncommitted, `+` staged, `?` untracked)
-- **Timestamp**: Current time for each update
-- **Model & Style**: Shows active model and output style
-
-## Screenshot
-
-![Claude Code Statusline](screenshot.png)
+- **Interactive Setup Wizard**: Terminal UI to easily toggle and reorder segments.
+- **Accurate Context & Quota Tracking**: Uses Claude Code's native JSON payload for exact context percentage and Pro/Max subscriber rate limits.
+- **Smart Cost Display**: Automatically hides API costs if you're on a Claude subscription and have quota bars enabled.
+- **16 Available Segments**: Choose from Model, Timestamp, Git, Output Style, Effort, Duration, Thinking Status, PR Info, and more.
+- **Zero Dependencies**: Pure `bash` (3.2+ compatible) and `jq`. No external network requests, no cache files.
 
 ## Installation
 
 ### Prerequisites
 
-- [Claude Code](https://claude.com/claude-code) installed
+- [Claude Code](https://claude.com/claude-code) installed (v2.1.132+ recommended for native context percentage)
 - `jq` for JSON parsing:
-  ```bash
-  # macOS
-  brew install jq
-
-  # Linux (Debian/Ubuntu)
-  sudo apt install jq
-
-  # Linux (Fedora)
-  sudo dnf install jq
-  ```
+  - **macOS**: `brew install jq`
+  - **Linux**: `sudo apt install jq` (Debian/Ubuntu) or `sudo dnf install jq` (Fedora)
+  - **Windows**: `winget install jqlang.jq` or `choco install jq` or `scoop install jq`
 
 ### Setup
 
-1. **Download the script:**
-   ```bash
-   mkdir -p ~/.claude
-   curl -o ~/.claude/statusline-command.sh https://raw.githubusercontent.com/jacob-bd/claude-code-statusline/main/statusline-command.sh
-   chmod +x ~/.claude/statusline-command.sh
-   ```
-
-2. **Configure Claude Code** - add to `~/.claude/settings.json`:
-   ```json
-   {
-     "statusLine": {
-       "type": "command",
-       "command": "bash ~/.claude/statusline-command.sh"
-     }
-   }
-   ```
-
-   Or if you already have settings, just add the `statusLine` block.
-
-3. **Restart Claude Code** to apply changes.
-
-## Customization
-
-### Static Overhead (Fallback Only)
-
-The script uses cache-based token counts for accurate context tracking. These cache tokens already include all overhead (system prompt, tools, MCPs), so no manual adjustment is needed for most interactions.
-
-On the **first message** of a session (before any cache data exists), the script falls back to `input_tokens + STATIC_OVERHEAD`. The default value works for typical setups:
+Run this one-line command in your terminal. It will download the scripts, update your Claude Code settings, and automatically launch the configuration wizard:
 
 ```bash
-STATIC_OVERHEAD=53000  # Fallback only: used when cache data unavailable
+curl -sL https://raw.githubusercontent.com/jacob-bd/claude-code-statusline/main/install.sh | bash
 ```
 
-You generally do not need to change this value. After the first exchange, the cache-based approach takes over automatically.
+*Note: Restart Claude Code after installation to apply the changes.*
 
-### Adjust Color Thresholds
+### Uninstallation
 
-Edit these lines to change when colors trigger:
+To remove the custom statusline and revert Claude Code to its default behavior:
 
-```bash
-if [[ $pct -lt 50 ]]; then
-    color='\033[32m'  # green
-elif [[ $pct -lt 75 ]]; then
-    color='\033[33m'  # yellow
-else
-    color='\033[31m'  # red
-fi
-```
-
-### Change Progress Bar Width
-
-Modify `bar_width=20` to your preferred width.
-
-## Limitations
-
-### Context Bar Accuracy
-
-The cache-based approach provides accurate context tracking for the vast majority of interactions. Cache tokens (`cache_creation_input_tokens` + `cache_read_input_tokens`) naturally include all overhead -- system prompt, tools, MCP servers, memory files, and custom agents -- so no manual estimation is required.
-
-The only exception is the **first message** of a new session, before any cache data exists. In this case, the script falls back to `input_tokens + STATIC_OVERHEAD` (~53k), which is an approximation. After the first exchange, the cache-based approach takes over and accuracy improves significantly.
-
-**Known issue:** There are [multiple open GitHub issues](https://github.com/anthropics/claude-code/issues/516) requesting Anthropic to expose total context usage in the statusline JSON. Upvote if you want this fixed properly!
-
-### Calculating Your Own Overhead (Optional/Legacy)
-
-The `STATIC_OVERHEAD` value is only used as a fallback for the first message of a session. The default of 53000 works for most setups. If you want to fine-tune it:
-
-1. Run `/context` in Claude Code
-2. Add up everything **except** Messages (system prompt, tools, MCP tools, custom agents, memory files)
-3. Set your value in the script:
+1. Open your Claude Code settings file: `~/.claude/settings.json`
+2. Delete the entire `"statusLine"` block.
+3. Restart Claude Code.
+4. (Optional) Delete the scripts and config:
    ```bash
-   STATIC_OVERHEAD=53000
+   rm ~/.claude/statusline-command.sh ~/.claude/configure.sh ~/.claude/statusline-config.json
    ```
 
-This is optional -- the cache-based approach handles overhead automatically after the first exchange.
+## Configuration Wizard
 
-## How It Works
+Run the interactive wizard to choose which segments appear and in what order:
 
-The script receives JSON input from Claude Code containing:
-- `cost.total_cost_usd` - Accurate total cost across all models
-- `context_window.current_usage` - Token usage breakdown (`input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`)
-- `context_window.context_window_size` - Total context window (200k for most models)
-- `workspace` - Directory information
-- `model` - Active model info
+```bash
+bash ~/.claude/configure.sh
+```
 
-**Dual-strategy context calculation:**
+![Configuration Wizard](screenshot.png)
 
-1. **Primary (cache-based):** Uses `cache_creation_input_tokens + cache_read_input_tokens`. These cache totals naturally include all overhead (system prompt, tools, MCP servers), giving accurate context usage without any manual estimation.
+### How it works
+1. Type a number (1-19) and press Enter to toggle a segment on or off.
+2. The live preview updates instantly.
+3. Press `s` to save your configuration to `~/.claude/statusline-config.json`.
+4. Your Claude Code statusline will update on the next prompt!
 
-2. **Fallback (static overhead):** On the first message of a session, cache tokens are zero. The script falls back to `input_tokens + STATIC_OVERHEAD` (~53k) to approximate the full context.
+> [!TIP]
+> **Handling Truncation (`..`)**: Claude Code keeps the status line on a single line and will automatically truncate it with `..` if it exceeds your terminal width. If your status line is getting cut off:
+> 1. Run `configure.sh` and toggle off less important segments (e.g., Output Style, Thinking, or Version).
+> 2. Reduce the progress bar widths in your config file (see *Advanced Configuration* below).
 
-The percentage is calculated against the full context window size to match `/context` output.
+### Available Segments
 
-## Related Issues
+| Segment | Example | Description |
+|---------|---------|-------------|
+| **Timestamp** | `[10:05:06]` | Current local time |
+| **Model** | `Sonnet 5` | Active model display name |
+| **Effort level** | `⚡med` | Current reasoning effort level |
+| **Output style** | `concise` | Active output style |
+| **Directory** | `my-project` | Current directory (relative to workspace) |
+| **Git status** | `on main*+` | Branch name and indicators (`*` uncommitted, `+` staged, `?` untracked) |
+| **Context window** | `[████░░░░] 42% 114k left`| Context usage percentage and remaining tokens |
+| **Context % only** | `Context: 42% 114k left` | Context usage percentage only (saves space) |
+| **API Cost** | `$0.85` | Session total cost |
+| **Quota 5h** | `5h [██░░] 24%` | Subscription 5-hour rolling rate limit (Pro/Max) |
+| **Quota 5h % only**| `5h 24%` | Subscription 5-hour rate limit percentage only (saves space) |
+| **Quota 7d** | `7d [████░░] 41%` | Subscription 7-day rate limit (Pro/Max) |
+| **Quota 7d % only**| `7d 41%` | Subscription 7-day rate limit percentage only (saves space) |
+| **Duration** | `⏱ 2m34s` | Total time waiting for API responses |
+| **Lines changed** | `+48/-12` | Lines of code added/removed |
+| **Session name** | `📌 my-session` | Custom session name |
+| **Thinking** | `💭 on` | Extended thinking status |
+| **Version** | `v2.1.200` | Claude Code version |
+| **PR info** | `PR #42 ✓` | Open PR number and review status |
 
-- [#11535](https://github.com/anthropics/claude-code/issues/11535) - "Expose token usage data to statusline scripts" (canonical issue, still open)
-- [#18944](https://github.com/anthropics/claude-code/issues/18944) - "Statusline API used_percentage significantly underreports" (source of cache-based workaround)
-- [#516](https://github.com/anthropics/claude-code/issues/516) - "Always show available context percentage"
-- [#14058](https://github.com/anthropics/claude-code/issues/14058) - "Include actual context window usage in statusline JSON"
-- [#13776](https://github.com/anthropics/claude-code/issues/13776) - "Expose full context usage in statusline API"
+## Advanced Configuration
 
-## Vibe Coding Alert
+You can manually edit the config file at `~/.claude/statusline-config.json`:
 
-Full transparency: this project was built by a non-developer using AI coding assistants. If you're an experienced shell scripter, you might look at this code and wince. That's okay.
+```json
+{
+  "segments": [
+    "timestamp",
+    "model",
+    "directory",
+    "git",
+    "context",
+    "cost",
+    "quota_5h",
+    "quota_7d"
+  ],
+  "context_bar_width": 20,
+  "bar_width": 10
+}
+```
 
-The goal here was to scratch an itch - better cost and context tracking for Claude Code - and learn along the way. The code works, but it's likely missing patterns, optimizations, or elegance that only years of experience can provide.
+The order of items in the `segments` array determines their display order from left to right.
 
 ## License
 
 MIT License - feel free to modify and share!
-
-## Contributing
-
-Issues and PRs welcome. If you find ways to get more accurate context data from Claude Code, please share!
