@@ -103,6 +103,70 @@ toggle_segment() {
     fi
 }
 
+move_segment_up() {
+    local idx=$1
+    if [[ $idx -gt 0 ]]; then
+        local tmp="${enabled_segments[$idx]}"
+        enabled_segments[$idx]="${enabled_segments[$((idx-1))]}"
+        enabled_segments[$((idx-1))]="$tmp"
+        cursor=$((idx-1))
+    fi
+}
+
+move_segment_down() {
+    local idx=$1
+    local last=$((${#enabled_segments[@]} - 1))
+    if [[ $idx -lt $last ]]; then
+        local tmp="${enabled_segments[$idx]}"
+        enabled_segments[$idx]="${enabled_segments[$((idx+1))]}"
+        enabled_segments[$((idx+1))]="$tmp"
+        cursor=$((idx+1))
+    fi
+}
+
+remove_segment_at() {
+    local idx=$1
+    local new=()
+    local i
+    for ((i=0; i<${#enabled_segments[@]}; i++)); do
+        [[ $i -ne $idx ]] && new+=("${enabled_segments[$i]}")
+    done
+    enabled_segments=("${new[@]}")
+    local last=$((${#enabled_segments[@]} - 1))
+    [[ $cursor -gt $last ]] && cursor=$last
+    [[ $cursor -lt 0 ]] && cursor=0
+    return 0
+}
+
+append_segment() {
+    local id="$1"
+    enabled_segments+=("$id")
+}
+
+reset_to_defaults() {
+    enabled_segments=("${DEFAULT_SEGMENTS[@]}")
+    cursor=0
+}
+
+is_multi_allowed() {
+    [[ "$1" == "flex" || "$1" == "newline" ]]
+}
+
+is_available_to_add() {
+    local id="$1"
+    is_multi_allowed "$id" && return 0
+    is_enabled "$id" && return 1
+    return 0
+}
+
+get_available_segment_ids() {
+    local i id
+    for ((i=0; i<SEGMENT_COUNT; i++)); do
+        id="${SEG_ID[$i]}"
+        is_available_to_add "$id" && printf "%s\n" "$id"
+    done
+}
+
 # ── Render preview bar ────────────────────────────────────────────────
 
 render_preview() {
