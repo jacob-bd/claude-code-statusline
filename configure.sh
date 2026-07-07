@@ -286,6 +286,19 @@ render_live_preview() {
     printf '%s' "$output"
 }
 
+# render_live_preview shells out to a whole bash process (jq, tput, git...),
+# so it's too slow to call on every redraw. Cursor movement alone never
+# changes enabled_segments, so cache the rendered preview and only
+# recompute it when the segment list actually changes.
+get_cached_preview() {
+    local key="${enabled_segments[*]}"
+    if [[ "$key" != "${PREVIEW_CACHE_KEY:-}" ]]; then
+        PREVIEW_CACHE=$(render_live_preview)
+        PREVIEW_CACHE_KEY="$key"
+    fi
+    printf '%s' "$PREVIEW_CACHE"
+}
+
 # ── Draw wizard screen ────────────────────────────────────────────────
 
 draw_main_screen() {
@@ -297,7 +310,7 @@ draw_main_screen() {
 
     printf '  \033[90m── Preview ──────────────────────────────────────────────\033[0m\n'
     printf '   '
-    render_live_preview
+    get_cached_preview
     printf '\n'
     printf '  \033[90m───────────────────────────────────────────────────────────\033[0m\n\n'
 
