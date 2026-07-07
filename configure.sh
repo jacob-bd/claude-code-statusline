@@ -7,6 +7,7 @@
 #
 # Compatible with bash 3.2+ (macOS default) — no associative arrays.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$HOME/.claude/statusline-config.json"
 
 # All available segments: id|label|preview (ANSI-colored)
@@ -217,9 +218,9 @@ render_preview() {
 
 # ── Save config ───────────────────────────────────────────────────────
 
-save_config() {
-    mkdir -p "$(dirname "$CONFIG_FILE")"
+segments_to_json() {
     local json_array=""
+    local s
     for s in "${enabled_segments[@]}"; do
         if [[ -n "$json_array" ]]; then
             json_array="$json_array, \"$s\""
@@ -227,7 +228,61 @@ save_config() {
             json_array="\"$s\""
         fi
     done
-    printf '{\n  "segments": [%s],\n  "context_bar_width": 20,\n  "bar_width": 10\n}\n' "$json_array" > "$CONFIG_FILE"
+    printf '{\n  "segments": [%s],\n  "context_bar_width": 20,\n  "bar_width": 10\n}\n' "$json_array"
+}
+
+save_config() {
+    mkdir -p "$(dirname "$CONFIG_FILE")"
+    segments_to_json > "$CONFIG_FILE"
+}
+
+build_mock_json() {
+    local cwd; cwd=$(pwd)
+    local five_h_reset seven_d_reset
+    five_h_reset=$(( $(date +%s) + 7200 ))
+    seven_d_reset=$(( $(date +%s) + 259200 ))
+    cat <<JSON
+{
+  "model": {"display_name": "Sonnet 5"},
+  "output_style": {"name": "concise"},
+  "effort": {"level": "med"},
+  "workspace": {"current_dir": "$cwd", "project_dir": "$cwd"},
+  "context_window": {
+    "used_percentage": 42,
+    "remaining_percentage": 58,
+    "context_window_size": 200000,
+    "total_input_tokens": 15200,
+    "total_output_tokens": 3400,
+    "current_usage": {
+      "input_tokens": 15200,
+      "output_tokens": 3400,
+      "cache_creation_input_tokens": 10000,
+      "cache_read_input_tokens": 2000
+    }
+  },
+  "cost": {"total_cost_usd": 0.85, "total_duration_ms": 154000, "total_api_duration_ms": 12000, "total_lines_added": 48, "total_lines_removed": 12},
+  "session_name": "my-session",
+  "thinking": {"enabled": true},
+  "version": "2.1.200",
+  "pr": {"number": 42, "review_state": "approved"},
+  "rate_limits": {
+    "five_hour": {"used_percentage": 24, "resets_at": $five_h_reset},
+    "seven_day": {"used_percentage": 41, "resets_at": $seven_d_reset}
+  },
+  "vim": {"mode": "NORMAL"}
+}
+JSON
+}
+
+render_live_preview() {
+    local tmp_config cols lines output
+    tmp_config=$(mktemp)
+    segments_to_json > "$tmp_config"
+    cols=$(tput cols 2>/dev/null || echo 80)
+    lines=$(tput lines 2>/dev/null || echo 24)
+    output=$(build_mock_json | STATUSLINE_CONFIG_FILE="$tmp_config" COLUMNS="$cols" LINES="$lines" bash "$SCRIPT_DIR/statusline-command.sh" 2>/dev/null)
+    rm -f "$tmp_config"
+    printf '%s' "$output"
 }
 
 # ── Draw wizard screen ────────────────────────────────────────────────
