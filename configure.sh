@@ -8,7 +8,7 @@
 # Compatible with bash 3.2+ (macOS default) — no associative arrays.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$HOME/.claude/statusline-config.json"
+CONFIG_FILE="${STATUSLINE_CONFIG_FILE:-$HOME/.claude/statusline-config.json}"
 
 # All available segments: id|label|preview (ANSI-colored)
 # Using indexed arrays for bash 3.2 compatibility (macOS)
@@ -117,16 +117,16 @@ is_enabled() {
     return 1
 }
 
-toggle_segment() {
-    local s="$1"
-    if is_enabled "$s"; then
-        local new=()
-        for e in "${enabled_segments[@]}"; do
-            [[ "$e" != "$s" ]] && new+=("$e")
-        done
-        enabled_segments=("${new[@]}")
-    else
-        enabled_segments+=("$s")
+setup_terminal() {
+    if [[ -t 0 ]]; then
+        SAVED_STTY=$(stty -g 2>/dev/null || echo "")
+        stty -icanon -echo min 1 time 0 2>/dev/null || true
+    fi
+}
+
+restore_terminal() {
+    if [[ -n "${SAVED_STTY:-}" ]]; then
+        stty "$SAVED_STTY" 2>/dev/null || true
     fi
 }
 
@@ -217,31 +217,6 @@ read_key() {
     echo "CHAR:$key"
 }
 
-# ── Render preview bar ────────────────────────────────────────────────
-
-render_preview() {
-    local first=true
-    for s in "${enabled_segments[@]}"; do
-        if [[ "$s" == "newline" ]]; then
-            printf "\n   "
-            first=true
-            continue
-        fi
-        
-        local preview
-        preview=$(get_preview_for_id "$s")
-        [[ -z "$preview" ]] && continue
-        if $first; then
-            printf "%b" "$preview"
-            first=false
-        elif [[ "$s" == "git" ]]; then
-            printf " %b" "$preview"
-        else
-            printf " \033[90m|\033[0m %b" "$preview"
-        fi
-    done
-}
-
 # ── Save config ───────────────────────────────────────────────────────
 
 segments_to_json() {
@@ -313,108 +288,125 @@ render_live_preview() {
 
 # ── Draw wizard screen ────────────────────────────────────────────────
 
-draw_screen() {
-    printf '\033[2J\033[H'
-
-    printf '\n'
+draw_main_screen() {
+    local cur="$1" mode="$2"
+    printf '\033[2J\033[H\n'
     printf '  \033[1;36m╔══════════════════════════════════════════════════════╗\033[0m\n'
     printf '  \033[1;36m║\033[0m  \033[1mClaude Code Statusline Configurator\033[0m               \033[1;36m║\033[0m\n'
     printf '  \033[1;36m╚══════════════════════════════════════════════════════╝\033[0m\n\n'
 
-    # Preview
-    local cols width dashes i
-    cols=$(tput cols 2>/dev/null || echo 80)
-    width=$((cols - 6))
-    [[ $width -lt 40 ]] && width=40
+    printf '  \033[90m── Preview ──────────────────────────────────────────────\033[0m\n'
+    printf '   '
+    render_live_preview
+    printf '\n'
+    printf '  \033[90m───────────────────────────────────────────────────────────\033[0m\n\n'
 
-    printf "  \033[90m── Preview "
-    dashes=$((width - 11))
-    for ((i=0; i<dashes; i++)); do printf "─"; done
-    printf "\033[0m\n"
-
-    printf "   "
-    render_preview
-    printf "\n"
-
-    printf "  \033[90m"
-    for ((i=0; i<width; i++)); do printf "─"; done
-    printf "\033[0m\n\n"
-
-    # Width warning
-    local raw_preview clean_preview max_len
-    raw_preview=$(render_preview)
-    clean_preview=$(echo -e "$raw_preview" | sed 's/\x1b\[[0-9;]*m//g')
-    max_len=$(echo "$clean_preview" | awk '{print length}' | sort -nr | head -n1)
-    if [[ $max_len -gt 85 ]]; then
-        printf "  \033[33m⚠️  Warning: Longest line is (%d chars) and may truncate on narrow terminals.\033[0m\n" "$max_len"
-        printf "  \033[33m   Consider disabling segments or using '%% only' versions to save space.\033[0m\n\n"
+    if [[ "$mode" == "move" ]]; then
+        printf '  Your statusline   \033[33m◆ moving \xe2\x80\x94 \xe2\x86\x91/\xe2\x86\x93 reposition, Enter/Esc to drop\033[0m\n\n'
+    else
+        printf '  Your statusline   \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Enter move \xc2\xb7 a add \xc2\xb7 d remove\n\n'
     fi
 
-    printf '  Toggle segments by typing a number:\n\n'
-
-    for ((i=0; i<SEGMENT_COUNT; i++)); do
-        local id="${SEG_ID[$i]}"
-        local label="${SEG_LABEL[$i]}"
-        local preview="${SEG_PREVIEW[$i]}"
-        local num=$((i + 1))
-
-        if is_enabled "$id"; then
-            printf "  \033[32m✓\033[0m %2d. \033[1m%-18s\033[0m " "$num" "$label"
-        else
-            printf "  \033[90m✗\033[0m %2d. \033[90m%-18s\033[0m " "$num" "$label"
-        fi
-        printf "%b" "$preview"
-        printf '\n'
+    local i=0
+    local id
+    for id in "${enabled_segments[@]}"; do
+        local is_cursor=false is_moving=false
+        [[ $i -eq $cur ]] && is_cursor=true
+        [[ $i -eq $cur && "$mode" == "move" ]] && is_moving=true
+        printf '  %s\n' "$(format_enabled_row "$i" "$id" "$is_cursor" "$is_moving")"
+        i=$((i+1))
     done
 
+    printf '\n  \033[1m[a]\033[0m add   \033[1m[r]\033[0m reset to defaults   \033[1m[s]\033[0m save & exit   \033[1m[q]\033[0m quit\n'
+}
+
+draw_picker_screen() {
+    local sel="$1"
+    printf '\033[2J\033[H\n'
+    printf '  \033[1;36m── Add a segment \xe2\x80\x94 \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Enter add \xc2\xb7 Esc cancel \xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\033[0m\n\n'
+
+    local available; available=($(get_available_segment_ids))
+    local i=0
+    local id
+    for id in "${available[@]}"; do
+        local label preview marker
+        label=$(get_label_for_id "$id")
+        preview=$(get_preview_for_id "$id")
+        if [[ $i -eq $sel ]]; then marker="▸"; else marker=" "; fi
+        printf "  %s %-20s %b\n" "$marker" "$label" "$preview"
+        i=$((i+1))
+    done
+    if [[ ${#available[@]} -eq 0 ]]; then
+        printf '  \033[90m(no segments available to add)\033[0m\n'
+    fi
     printf '\n'
-    printf '  \033[90m────────────────────────────────────────────────────────────────────────\033[0m\n'
-    printf '  \033[1m[1-25]\033[0m toggle  '
-    printf '\033[1m[d]\033[0m defaults  '
-    printf '\033[1m[p]\033[0m premium 2-line  '
-    printf '\033[1m[s]\033[0m save & exit  '
-    printf '\033[1m[q]\033[0m quit\n'
-    printf '  \033[36m❯\033[0m '
 }
 
 # ── Main loop ─────────────────────────────────────────────────────────
 
 main() {
+    trap restore_terminal EXIT
+    setup_terminal
     load_config
+    cursor=0
+    local mode="normal"
+    local picker_cursor=0
 
     while true; do
-        draw_screen
-        read -r choice
+        if [[ "$mode" == "picker" ]]; then
+            draw_picker_screen "$picker_cursor"
+        else
+            draw_main_screen "$cursor" "$mode"
+        fi
 
-        case "$choice" in
-            [1-9]|1[0-9]|2[0-9])
-                local idx=$((choice - 1))
-                if [[ $idx -ge 0 && $idx -lt $SEGMENT_COUNT ]]; then
-                    toggle_segment "${SEG_ID[$idx]}"
-                fi
+        local key; key=$(read_key)
+
+        if [[ "$mode" == "move" ]]; then
+            case "$key" in
+                UP) move_segment_up "$cursor" ;;
+                DOWN) move_segment_down "$cursor" ;;
+                ENTER|ESC) mode="normal" ;;
+            esac
+            continue
+        fi
+
+        if [[ "$mode" == "picker" ]]; then
+            local available; available=($(get_available_segment_ids))
+            local avail_count=${#available[@]}
+            case "$key" in
+                UP) [[ $picker_cursor -gt 0 ]] && picker_cursor=$((picker_cursor-1)) ;;
+                DOWN) [[ $picker_cursor -lt $((avail_count-1)) ]] && picker_cursor=$((picker_cursor+1)) ;;
+                ENTER)
+                    if [[ $avail_count -gt 0 ]]; then
+                        append_segment "${available[$picker_cursor]}"
+                        cursor=$((${#enabled_segments[@]} - 1))
+                    fi
+                    mode="normal"
+                    picker_cursor=0
+                    ;;
+                ESC) mode="normal"; picker_cursor=0 ;;
+            esac
+            continue
+        fi
+
+        case "$key" in
+            UP) [[ $cursor -gt 0 ]] && cursor=$((cursor-1)) ;;
+            DOWN) [[ $cursor -lt $((${#enabled_segments[@]} - 1)) ]] && cursor=$((cursor+1)) ;;
+            ENTER) [[ ${#enabled_segments[@]} -gt 0 ]] && mode="move" ;;
+            CHAR:a) mode="picker"; picker_cursor=0 ;;
+            CHAR:d)
+                [[ ${#enabled_segments[@]} -gt 0 ]] && remove_segment_at "$cursor"
                 ;;
-            d|D)
-                enabled_segments=("${DEFAULT_SEGMENTS[@]}")
-                ;;
-            p|P)
-                enabled_segments=("timestamp" "model" "style" "newline" "directory" "git" "flex" "tokens_in" "tokens_out" "cost")
-                ;;
-            s|S)
+            CHAR:r) reset_to_defaults ;;
+            CHAR:s)
                 save_config
-                printf '\033[2J\033[H'
-                printf '\n'
-                printf '  \033[32m✓ Configuration saved to %s\033[0m\n\n' "$CONFIG_FILE"
+                printf '\033[2J\033[H\n'
+                printf '  \033[32m\xe2\x9c\x93 Configuration saved to %s\033[0m\n\n' "$CONFIG_FILE"
                 printf '  Your statusline will update on the next Claude Code prompt.\n\n'
-                printf '  Enabled segments:\n'
-                for s in "${enabled_segments[@]}"; do
-                    printf '    • %s\n' "$s"
-                done
-                printf '\n'
                 exit 0
                 ;;
-            q|Q)
-                printf '\033[2J\033[H'
-                printf '\n  Exited without saving.\n\n'
+            CHAR:q)
+                printf '\033[2J\033[H\n  Exited without saving.\n\n'
                 exit 0
                 ;;
         esac
