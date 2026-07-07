@@ -55,7 +55,7 @@ Run the interactive wizard to choose which segments appear and in what order:
 bash ~/.claude/configure.sh
 ```
 
-![Configuration Wizard](screenshot.png)
+![Configuration Wizard](assets/wizard.png)
 
 ### How it works
 1. Type a number (1-19) and press Enter to toggle a segment on or off.
