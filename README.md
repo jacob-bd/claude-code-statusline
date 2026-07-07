@@ -14,7 +14,8 @@ For details on recent changes, see the [Changelog](CHANGELOG.md).
 - **Interactive Setup Wizard**: Terminal UI to easily toggle and reorder segments.
 - **Accurate Context & Quota Tracking**: Uses Claude Code's native JSON payload for exact context percentage and Pro/Max subscriber rate limits.
 - **Smart Cost Display**: Automatically hides API costs if you're on a Claude subscription and have quota bars enabled.
-- **16 Available Segments**: Choose from Model, Timestamp, Git, Output Style, Effort, Duration, Thinking Status, PR Info, and more.
+- **Multi-line & Flex Layouts**: Build beautiful, right-aligned, multi-line status displays directly in your terminal.
+- **22 Available Segments**: Choose from Model, Timestamp, Git, Token usage, Output Style, Effort, Quotas, PR Info, and more.
 - **Zero Dependencies**: Pure `bash` (3.2+ compatible) and `jq`. No external network requests, no cache files.
 
 ## Installation
@@ -93,6 +94,12 @@ bash ~/.claude/configure.sh
 | **Thinking** | `💭 on` | Extended thinking status |
 | **Version** | `v2.1.200` | Claude Code version |
 | **PR info** | `PR #42 ✓` | Open PR number and review status |
+| **Flex spacer** | `<--->` | Dynamically pushes subsequent segments to the right margin |
+| **New line** | `[NEWLINE]` | Splits the statusline onto a new terminal line |
+| **Tokens Input** | `In: 15.2k` | Total input tokens |
+| **Tokens Output** | `Out: 3.4k` | Total output tokens |
+| **Tokens Cached** | `Cache: 12k` | Tokens read/created in cache this turn |
+| **Tokens Total** | `Tok: 30.6k` | Total tokens (input + output) |
 
 ## Advanced Configuration
 
@@ -103,12 +110,14 @@ You can manually edit the config file at `~/.claude/statusline-config.json`:
   "segments": [
     "timestamp",
     "model",
+    "style",
+    "newline",
     "directory",
     "git",
-    "context",
-    "cost",
-    "quota_5h",
-    "quota_7d"
+    "flex",
+    "tokens_in",
+    "tokens_out",
+    "cost"
   ],
   "context_bar_width": 20,
   "bar_width": 10
@@ -116,6 +125,13 @@ You can manually edit the config file at `~/.claude/statusline-config.json`:
 ```
 
 The order of items in the `segments` array determines their display order from left to right.
+
+- Insert `"newline"` to split the rendering onto a second line.
+- Insert `"flex"` to consume all remaining terminal width, pushing the segments that follow it to the right-hand margin.
+
+## Acknowledgments
+
+The multi-line layout and `flex` spacer features were heavily inspired by the excellent [ccstatusline](https://github.com/macton/ccstatusline) project by @macton.
 
 ## License
 

@@ -11,7 +11,7 @@ CONFIG_FILE="$HOME/.claude/statusline-config.json"
 
 # All available segments: id|label|preview (ANSI-colored)
 # Using indexed arrays for bash 3.2 compatibility (macOS)
-SEGMENT_COUNT=19
+SEGMENT_COUNT=25
 SEG_ID=()
 SEG_LABEL=()
 SEG_PREVIEW=()
@@ -35,6 +35,12 @@ SEG_ID[15]="pr";         SEG_LABEL[15]="PR info";        SEG_PREVIEW[15]="PR #42
 SEG_ID[16]="context_pct";  SEG_LABEL[16]="Context % only";   SEG_PREVIEW[16]="Context: \033[33m42%\033[0m 114k left"
 SEG_ID[17]="quota_5h_pct"; SEG_LABEL[17]="Quota 5h % only";  SEG_PREVIEW[17]="\033[32m5h 24%\033[0m"
 SEG_ID[18]="quota_7d_pct"; SEG_LABEL[18]="Quota 7d % only";  SEG_PREVIEW[18]="\033[33m7d 41%\033[0m"
+SEG_ID[19]="flex";         SEG_LABEL[19]="Flex spacer";      SEG_PREVIEW[19]="<--->"
+SEG_ID[20]="newline";      SEG_LABEL[20]="New line";         SEG_PREVIEW[20]="[NEWLINE]"
+SEG_ID[21]="tokens_in";    SEG_LABEL[21]="Tokens Input";     SEG_PREVIEW[21]="In: 15.2k"
+SEG_ID[22]="tokens_out";   SEG_LABEL[22]="Tokens Output";    SEG_PREVIEW[22]="Out: 3.4k"
+SEG_ID[23]="tokens_cached"; SEG_LABEL[23]="Tokens Cached";   SEG_PREVIEW[23]="Cache: 12k"
+SEG_ID[24]="tokens_total"; SEG_LABEL[24]="Tokens Total";     SEG_PREVIEW[24]="Tok: 30.6k"
 
 DEFAULT_SEGMENTS=(timestamp model style directory git context cost quota_5h quota_7d)
 
@@ -94,6 +100,12 @@ toggle_segment() {
 render_preview() {
     local first=true
     for s in "${enabled_segments[@]}"; do
+        if [[ "$s" == "newline" ]]; then
+            printf "\n   "
+            first=true
+            continue
+        fi
+        
         local preview
         preview=$(get_preview_for_id "$s")
         [[ -z "$preview" ]] && continue
@@ -153,12 +165,12 @@ draw_screen() {
     printf "\033[0m\n\n"
 
     # Width warning
-    local raw_preview clean_preview preview_len
+    local raw_preview clean_preview max_len
     raw_preview=$(render_preview)
     clean_preview=$(echo -e "$raw_preview" | sed 's/\x1b\[[0-9;]*m//g')
-    preview_len=${#clean_preview}
-    if [[ $preview_len -gt 85 ]]; then
-        printf "  \033[33m⚠️  Warning: Statusline is long (%d chars) and may truncate on narrow terminals.\033[0m\n" "$preview_len"
+    max_len=$(echo "$clean_preview" | awk '{print length}' | sort -nr | head -n1)
+    if [[ $max_len -gt 85 ]]; then
+        printf "  \033[33m⚠️  Warning: Longest line is (%d chars) and may truncate on narrow terminals.\033[0m\n" "$max_len"
         printf "  \033[33m   Consider disabling segments or using '%% only' versions to save space.\033[0m\n\n"
     fi
 
@@ -181,8 +193,9 @@ draw_screen() {
 
     printf '\n'
     printf '  \033[90m────────────────────────────────────────────────────────────────────────\033[0m\n'
-    printf '  \033[1m[1-19]\033[0m toggle  '
+    printf '  \033[1m[1-25]\033[0m toggle  '
     printf '\033[1m[d]\033[0m defaults  '
+    printf '\033[1m[p]\033[0m premium 2-line  '
     printf '\033[1m[s]\033[0m save & exit  '
     printf '\033[1m[q]\033[0m quit\n'
     printf '  \033[36m❯\033[0m '
@@ -198,7 +211,7 @@ main() {
         read -r choice
 
         case "$choice" in
-            [1-9]|1[0-9])
+            [1-9]|1[0-9]|2[0-9])
                 local idx=$((choice - 1))
                 if [[ $idx -ge 0 && $idx -lt $SEGMENT_COUNT ]]; then
                     toggle_segment "${SEG_ID[$idx]}"
@@ -206,6 +219,9 @@ main() {
                 ;;
             d|D)
                 enabled_segments=("${DEFAULT_SEGMENTS[@]}")
+                ;;
+            p|P)
+                enabled_segments=("timestamp" "model" "style" "newline" "directory" "git" "flex" "tokens_in" "tokens_out" "cost")
                 ;;
             s|S)
                 save_config
