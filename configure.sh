@@ -167,6 +167,29 @@ get_available_segment_ids() {
     done
 }
 
+read_key() {
+    local key rest
+    IFS= read -rsn1 key
+    if [[ "$key" == $'\x1b' ]]; then
+        if IFS= read -rsn1 -t 1 rest && [[ "$rest" == "[" ]]; then
+            local rest2
+            if IFS= read -rsn1 -t 1 rest2; then
+                case "$rest2" in
+                    A) echo "UP"; return ;;
+                    B) echo "DOWN"; return ;;
+                esac
+            fi
+        fi
+        echo "ESC"
+        return
+    fi
+    if [[ -z "$key" || "$key" == $'\n' || "$key" == $'\r' ]]; then
+        echo "ENTER"
+        return
+    fi
+    echo "CHAR:$key"
+}
+
 # ── Render preview bar ────────────────────────────────────────────────
 
 render_preview() {
