@@ -3,7 +3,7 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
 ![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
 
-A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 12 other configurable segments.
+A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 20 other configurable segments.
 
 ![Claude Code Statusline](assets/statusline.png)
 
@@ -15,7 +15,7 @@ For details on recent changes, see the [Changelog](CHANGELOG.md).
 - **Accurate Context & Quota Tracking**: Uses Claude Code's native JSON payload for exact context percentage and Pro/Max subscriber rate limits.
 - **Smart Cost Display**: Automatically hides API costs if you're on a Claude subscription and have quota bars enabled.
 - **Multi-line & Flex Layouts**: Build beautiful, right-aligned, multi-line status displays directly in your terminal.
-- **22 Available Segments**: Choose from Model, Timestamp, Git, Token usage, Output Style, Effort, Quotas, PR Info, and more.
+- **33 Available Segments**: Choose from Model, Timestamp, Git, Token usage, Output Style, Effort, Quotas, PR Info, Cache Metrics, and more.
 - **Zero Dependencies**: Pure `bash` (3.2+ compatible) and `jq`. No external network requests, no cache files.
 
 ## Installation
@@ -100,6 +100,17 @@ bash ~/.claude/configure.sh
 | **Tokens Output** | `Out: 3.4k` | Total output tokens |
 | **Tokens Cached** | `Cache: 12k` | Tokens read/created in cache this turn |
 | **Tokens Total** | `Tok: 30.6k` | Total tokens (input + output) |
+| **Cache Hit Rate** | `Cache Hit: 87.0%` | Prompt cache hit rate (cache reads vs. cache writes) |
+| **Cache Read** | `Cache Read: 12k (64%)` | Cache read tokens served from cache, with % share of context |
+| **Cache Write** | `Cache Write: 3k (16%)` | Cache write tokens written to cache, with % share of context |
+| **Quota 5h Reset** | `⏳ resets in 2h5m` | Time remaining until the 5-hour rate limit window resets |
+| **Quota 7d Reset** | `⏳ resets in 2d3h` | Time remaining until the 7-day rate limit window resets |
+| **Vim Mode** | `🔵 NORMAL` | Current vim mode, shown when Claude Code's vim editor mode is enabled |
+| **Git Worktree** | `🌳 feature-x` | Name of the current git worktree, if inside one |
+| **API Duration** | `⏱ api 1m12s` | Time spent waiting on API responses (distinct from wall-clock Duration) |
+
+> [!TIP]
+> **Vim Mode double-display**: if you enable the Vim Mode segment, also set `"hideVimModeIndicator": true` in your `statusLine` settings block to avoid Claude Code's built-in `-- INSERT --` indicator showing twice.
 
 ## Advanced Configuration
 
