@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # ── Claude Code Statusline Installer ──────────────────────────────────
+# Version: 0.2.0
 # One-line installer for the Claude Code Configurable Statusline.
 # Usage: curl -sL https://raw.githubusercontent.com/jacob-bd/claude-code-statusline/main/install.sh | bash
 
