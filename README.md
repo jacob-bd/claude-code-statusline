@@ -84,11 +84,11 @@ bash ~/.claude/configure.sh
 | **Git status** | `on main*+` | Branch name and indicators (`*` uncommitted, `+` staged, `?` untracked) |
 | **Context window** | `[████░░░░] 42% 114k left`| Context usage percentage and remaining tokens |
 | **Context % only** | `Context: 42% 114k left` | Context usage percentage only (saves space) |
-| **API Cost** | `$0.85` | Session total cost |
-| **Quota 5h** | `5h [██░░] 24%` | Subscription 5-hour rolling rate limit (Pro/Max) |
-| **Quota 5h % only**| `5h 24%` | Subscription 5-hour rate limit percentage only (saves space) |
-| **Quota 7d** | `7d [████░░] 41%` | Subscription 7-day rate limit (Pro/Max) |
-| **Quota 7d % only**| `7d 41%` | Subscription 7-day rate limit percentage only (saves space) |
+| **API Cost** \* | `$0.85` | Session total cost |
+| **Quota 5h** \* | `5h [██░░] 24%` | Subscription 5-hour rolling rate limit (Pro/Max) |
+| **Quota 5h % only** \* | `5h 24%` | Subscription 5-hour rate limit percentage only (saves space) |
+| **Quota 7d** \* | `7d [████░░] 41%` | Subscription 7-day rate limit (Pro/Max) |
+| **Quota 7d % only** \* | `7d 41%` | Subscription 7-day rate limit percentage only (saves space) |
 | **Duration** | `⏱ 2m34s` | Total wall-clock session time (typing, tool use, and API calls combined) |
 | **Lines changed** | `+48/-12` | Lines of code added/removed |
 | **Session name** | `📌 my-session` | Custom session name |
@@ -104,11 +104,13 @@ bash ~/.claude/configure.sh
 | **Cache Hit Rate** | `Cache Hit: 87.0%` | Prompt cache hit rate (cache reads vs. cache writes) |
 | **Cache Read** | `Cache Read: 12k (64%)` | Cache read tokens served from cache, with % share of context |
 | **Cache Write** | `Cache Write: 3k (16%)` | Cache write tokens written to cache, with % share of context |
-| **Quota 5h Reset** | `⏳ resets in 2h5m` | Time remaining until the 5-hour rate limit window resets |
-| **Quota 7d Reset** | `⏳ resets in 2d3h` | Time remaining until the 7-day rate limit window resets |
+| **Quota 5h Reset** \* | `⏳ resets in 2h5m` | Time remaining until the 5-hour rate limit window resets |
+| **Quota 7d Reset** \* | `⏳ resets in 2d3h` | Time remaining until the 7-day rate limit window resets |
 | **Vim Mode** | `🔵 NORMAL` | Current vim mode, shown when Claude Code's vim editor mode is enabled |
 | **Git Worktree** | `🌳 feature-x` | Name of the current git worktree, if inside one |
 | **API Duration** | `⏱ api 1m12s` | Time spent waiting on API responses (distinct from wall-clock Duration) |
+
+\* **Cost vs. Quota**: these segments render based on your account type, so you'll typically only ever see one side. API Cost shows on usage-based billing; the Quota segments show only on a Claude Pro/Max subscription. Enabling both is fine — the inactive ones simply stay hidden, they aren't broken.
 
 > [!TIP]
 > **Vim Mode double-display**: if you enable the Vim Mode segment, also set `"hideVimModeIndicator": true` in your `statusLine` settings block to avoid Claude Code's built-in `-- INSERT --` indicator showing twice.
