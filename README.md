@@ -5,6 +5,8 @@
 
 A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 12 other configurable segments.
 
+![Claude Code Statusline](assets/statusline.png)
+
 For details on recent changes, see the [Changelog](CHANGELOG.md).
 
 ## Features
