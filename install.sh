@@ -65,4 +65,4 @@ echo -e "  Starting the configuration wizard in 3 seconds...\n"
 sleep 3
 
 # 4. Launch wizard
-bash "$CLAUDE_DIR/configure.sh"
+bash "$CLAUDE_DIR/configure.sh" < /dev/tty
