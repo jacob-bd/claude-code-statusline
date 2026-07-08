@@ -239,6 +239,10 @@ read_key() {
         echo "ENTER"
         return
     fi
+    if [[ "$key" == " " ]]; then
+        echo "SPACE"
+        return
+    fi
     echo "CHAR:$key"
 }
 
@@ -376,19 +380,20 @@ draw_main_screen() {
 }
 
 draw_picker_screen() {
-    local sel="$1"
+    local sel="$1" checked_ids="$2"
     printf '\033[2J\033[H\n'
-    printf '  \033[1;36m── Add a segment \xe2\x80\x94 \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Enter add \xc2\xb7 Esc cancel \xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\033[0m\n\n'
+    printf '  \033[1;36m── Add a segment \xe2\x80\x94 \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Space toggle \xc2\xb7 Enter add \xc2\xb7 Esc cancel \xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\033[0m\n\n'
 
     local available; available=($(get_available_segment_ids))
     local i=0
     local id
     for id in "${available[@]}"; do
-        local label preview marker
+        local label preview marker checkbox
         label=$(get_label_for_id "$id")
         preview=$(get_preview_for_id "$id")
-        if [[ $i -eq $sel ]]; then marker="▸"; else marker=" "; fi
-        printf "  %s %-20s %b\n" "$marker" "$label" "$preview"
+        if [[ $i -eq $sel ]]; then marker="\033[1;92m▶\033[0m"; else marker=" "; fi
+        if [[ " $checked_ids " == *" $id "* ]]; then checkbox="\033[1;92m[x]\033[0m"; else checkbox="[ ]"; fi
+        printf "  %b %b %-20s %b\n" "$marker" "$checkbox" "$label" "$preview"
         i=$((i+1))
     done
     if [[ ${#available[@]} -eq 0 ]]; then
@@ -406,10 +411,11 @@ main() {
     cursor=0
     local mode="normal"
     local picker_cursor=0
+    local picker_checked=()
 
     while true; do
         if [[ "$mode" == "picker" ]]; then
-            draw_picker_screen "$picker_cursor"
+            draw_picker_screen "$picker_cursor" "${picker_checked[*]}"
         else
             draw_main_screen "$cursor" "$mode"
         fi
@@ -431,15 +437,36 @@ main() {
             case "$key" in
                 UP) [[ $picker_cursor -gt 0 ]] && picker_cursor=$((picker_cursor-1)) ;;
                 DOWN) [[ $picker_cursor -lt $((avail_count-1)) ]] && picker_cursor=$((picker_cursor+1)) ;;
-                ENTER)
+                SPACE)
                     if [[ $avail_count -gt 0 ]]; then
+                        local id="${available[$picker_cursor]}"
+                        local was_checked=false new_checked=() c
+                        for c in "${picker_checked[@]}"; do
+                            if [[ "$c" == "$id" ]]; then was_checked=true; else new_checked+=("$c"); fi
+                        done
+                        if $was_checked; then
+                            picker_checked=("${new_checked[@]}")
+                        else
+                            picker_checked+=("$id")
+                        fi
+                    fi
+                    ;;
+                ENTER)
+                    if [[ ${#picker_checked[@]} -gt 0 ]]; then
+                        local id
+                        for id in "${picker_checked[@]}"; do
+                            append_segment "$id"
+                        done
+                        cursor=$((${#enabled_segments[@]} - 1))
+                    elif [[ $avail_count -gt 0 ]]; then
                         append_segment "${available[$picker_cursor]}"
                         cursor=$((${#enabled_segments[@]} - 1))
                     fi
                     mode="normal"
                     picker_cursor=0
+                    picker_checked=()
                     ;;
-                ESC) mode="normal"; picker_cursor=0 ;;
+                ESC) mode="normal"; picker_cursor=0; picker_checked=() ;;
             esac
             continue
         fi

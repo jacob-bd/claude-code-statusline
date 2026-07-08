@@ -71,29 +71,54 @@ if [[ -z "$J_TOK_OUT" || "$J_TOK_OUT" == "null" ]]; then J_TOK_OUT=$J_OLD_TOK_OU
 J_TOK_CACHED=$(( ${J_OLD_TOK_CACHED_CREATE:-0} + ${J_OLD_TOK_CACHED_READ:-0} ))
 
 # ── Terminal Width ────────────────────────────────────────────────────
+
+# Looks up $2's ppid/tty within the pre-fetched `ps -eo pid=,ppid=,tty=`
+# snapshot passed as $1, setting PROC_PPID/PROC_TTY (empty if not found).
+# Reading the snapshot in bash avoids shelling out to `ps` on every step of
+# the ancestor walk below (up to 16 `ps -p` calls for an 8-level walk).
+proc_lookup() {
+    local table="$1" target="$2"
+    PROC_PPID=""
+    PROC_TTY=""
+    local p pp t
+    while read -r p pp t; do
+        if [[ "$p" == "$target" ]]; then
+            PROC_PPID="$pp"
+            PROC_TTY="$t"
+            return
+        fi
+    done <<< "$table"
+}
+
 get_terminal_width() {
     if [[ -n "$STATUSLINE_WIDTH" ]]; then echo "$STATUSLINE_WIDTH"; return; fi
     if [[ -n "$COLUMNS" && "$COLUMNS" =~ ^[0-9]+$ ]]; then echo "$COLUMNS"; return; fi
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then echo ""; return; fi
-    
+
+    local proc_table
+    proc_table=$(ps -eo pid=,ppid=,tty= 2>/dev/null)
+
     local pid=$$
     local depth=0
     while [[ $depth -lt 8 ]]; do
-        local parent_pid
-        parent_pid=$(ps -o ppid= -p $pid 2>/dev/null | tr -d ' ')
+        proc_lookup "$proc_table" "$pid"
+        local parent_pid="$PROC_PPID"
         [[ -z "$parent_pid" ]] && break
-        pid=$parent_pid
-        
-        local tty
-        tty=$(ps -o tty= -p $pid 2>/dev/null | tr -d ' ')
+        pid="$parent_pid"
+
+        proc_lookup "$proc_table" "$pid"
+        local tty="$PROC_TTY"
         if [[ -n "$tty" && "$tty" != "??" && "$tty" != "?" ]]; then
             local dev="/dev/$tty"
+            # Try GNU stty's -F (Linux) then BSD stty's -f (macOS). Checking
+            # $width directly (not the pipeline's exit status) matters here:
+            # a failed stty piped into awk still exits 0 with empty output,
+            # so testing the exit status alone would never fall through to
+            # the second flag.
             local width=""
-            if width=$(stty -F "$dev" size 2>/dev/null | awk '{print $2}'); then
-                [[ -n "$width" ]] && echo "$width" && return
-            elif width=$(stty -f "$dev" size 2>/dev/null | awk '{print $2}'); then
-                [[ -n "$width" ]] && echo "$width" && return
-            fi
+            width=$(stty -F "$dev" size 2>/dev/null | awk '{print $2}')
+            [[ -z "$width" ]] && width=$(stty -f "$dev" size 2>/dev/null | awk '{print $2}')
+            [[ -n "$width" ]] && echo "$width" && return
         fi
         depth=$((depth+1))
     done
@@ -145,6 +170,10 @@ format_tokens() {
     fi
 }
 
+strip_ansi() {
+    printf '%s' "$1" | sed 's/\x1b\[[0-9;]*m//g'
+}
+
 # Auto-wraps an assembled line onto extra physical lines instead of
 # truncating it, so enabling more segments than fit never silently hides
 # any of them. Splits only at " | " segment separators (never inside a
@@ -167,7 +196,7 @@ wrap_line() {
     local out_lines=()
     local chunk chunk_visible chunk_vlen
     for chunk in "${chunks[@]}"; do
-        chunk_visible=$(printf '%s' "$chunk" | sed 's/\x1b\[[0-9;]*m//g')
+        chunk_visible=$(strip_ansi "$chunk")
         chunk_vlen=${#chunk_visible}
         if [[ -z "$phys_line" ]]; then
             phys_line="$chunk"
@@ -498,6 +527,8 @@ render_api_duration() {
 # ── Main render loop ──────────────────────────────────────────────────
 
 TERM_WIDTH=$(get_terminal_width)
+# Claude Code applies some left margin to the statusline (typically ~6 spaces).
+TERM_LEFT_MARGIN=6
 
 # Split into lines by "newline" marker
 declare -a lines_arr
@@ -582,11 +613,10 @@ for line_segs in "${lines_arr[@]}"; do
     if [[ $flex_count -gt 0 ]]; then
         if [[ -n "$TERM_WIDTH" && "$TERM_WIDTH" -gt 0 ]]; then
             # visible length
-            visible_text=$(echo -n "$line_out" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/__FLEX__//g')
+            visible_text=$(strip_ansi "$line_out" | sed 's/__FLEX__//g')
             vlen=${#visible_text}
-            
-            # Claude Code applies some left margin (typically ~6 spaces)
-            available=$((TERM_WIDTH - vlen - 6))
+
+            available=$((TERM_WIDTH - vlen - TERM_LEFT_MARGIN))
             [[ $available -lt 0 ]] && available=0
             
             line_out=$(echo -n "$line_out" | awk -v total="$available" -v count="$flex_count" '
@@ -621,9 +651,9 @@ for line_segs in "${lines_arr[@]}"; do
     # wrapping onto multiple lines).
     physical_lines=("$line_out")
     if [[ -n "$TERM_WIDTH" && "$TERM_WIDTH" -gt 0 ]]; then
-        visible_text=$(echo -n "$line_out" | sed 's/\x1b\[[0-9;]*m//g')
+        visible_text=$(strip_ansi "$line_out")
         vlen=${#visible_text}
-        max_len=$((TERM_WIDTH - 6))
+        max_len=$((TERM_WIDTH - TERM_LEFT_MARGIN))
 
         if [[ $vlen -gt $max_len && $max_len -gt 3 ]]; then
             if [[ $flex_count -gt 0 ]]; then

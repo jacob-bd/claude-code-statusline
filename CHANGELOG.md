@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-Wrap**: Segments that overflow the terminal width now wrap onto a new line automatically instead of truncating with `...`.
 - **New Segments**: `cache_read`, `cache_write`, `quota_5h_reset`, `quota_7d_reset`, `vim_mode`, `worktree`, `api_duration`, `tokens_in`, `tokens_out`, `tokens_cached`, `tokens_total`, `flex`, `newline`.
 - **`STATUSLINE_CONFIG_FILE`**: Environment variable override for the config path, enabling isolated testing.
+- **Multi-Select Segment Picker**: Press `Space` on the "Add a segment" screen to check off multiple segments and add them all at once with `Enter`; the cursor arrow is now bold and bright green for better visibility.
 
 ### Fixed
 - Incorrect README description for the Duration segment (was documented with API Duration's description).
+- **Auto-Wrap Not Triggering on macOS**: `get_terminal_width()`'s ancestor-process fallback used GNU stty's `-F` flag, which fails silently on macOS's BSD `stty` and never fell through to the correct `-f` flag — so on macOS, whenever Claude Code didn't already provide `$COLUMNS`, the live statusline never wrapped or truncated, no matter how long the line got.
 
 ## [0.2.0] - 2026-07-07
 
