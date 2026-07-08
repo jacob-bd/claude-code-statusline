@@ -15,6 +15,7 @@ For details on recent changes, see the [Changelog](CHANGELOG.md).
 - **Accurate Context & Quota Tracking**: Uses Claude Code's native JSON payload for exact context percentage and Pro/Max subscriber rate limits.
 - **Smart Cost Display**: Automatically hides API costs if you're on a Claude subscription and have quota bars enabled.
 - **Multi-line & Flex Layouts**: Build beautiful, right-aligned, multi-line status displays directly in your terminal.
+- **Auto-Wrapping**: Segments that don't fit on one line automatically continue on the next — nothing gets silently truncated.
 - **33 Available Segments**: Choose from Model, Timestamp, Git, Token usage, Output Style, Effort, Quotas, PR Info, Cache Metrics, and more.
 - **Zero Dependencies**: Pure `bash` (3.2+ compatible) and `jq`. No external network requests, no cache files.
 
@@ -68,9 +69,7 @@ bash ~/.claude/configure.sh
 5. Press `s` to save your configuration to `~/.claude/statusline-config.json`, or `q` to quit without saving.
 
 > [!TIP]
-> **Handling Truncation (`..`)**: Claude Code keeps the status line on a single line and will automatically truncate it with `..` if it exceeds your terminal width. If your status line is getting cut off:
-> 1. Run `configure.sh` and remove (`d`) less important segments (e.g., Output Style, Thinking, or Version).
-> 2. Reduce the progress bar widths in your config file (see *Advanced Configuration* below).
+> **Overflow handling**: if your enabled segments don't fit on one line, they automatically wrap onto additional lines — nothing gets silently hidden. Wrapping only ever breaks between segments, never in the middle of one. The one exception is a line using the `flex` spacer: since `flex` deliberately claims the whole line's width, an overflowing flex line truncates with `..` instead of wrapping. If you'd rather control the line breaks yourself (or want a specific layout), press `n` in `configure.sh` to insert a line break at the cursor.
 
 ### Available Segments
 

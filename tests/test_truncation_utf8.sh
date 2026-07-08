@@ -3,11 +3,15 @@
 # (block-drawing bars, emoji). Splitting mid-character can crash macOS's
 # system awk ("towc: multibyte conversion failure") or emit a corrupted
 # replacement byte, producing empty/garbled output on narrow terminals.
+#
+# Truncation-with-"..." only still applies to lines using "flex" (auto-wrap
+# handles overflow for everything else) -- "flex" is included here so this
+# exercises that code path specifically.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TMP_CONFIG=$(mktemp)
-echo '{"segments":["context"]}' > "$TMP_CONFIG"
+echo '{"segments":["context","flex"]}' > "$TMP_CONFIG"
 MOCK_JSON='{"context_window":{"used_percentage":42,"remaining_percentage":58,"context_window_size":200000}}'
 
 # Narrow enough that the block-character progress bar must be truncated.

@@ -145,6 +145,46 @@ format_tokens() {
     fi
 }
 
+# Auto-wraps an assembled line onto extra physical lines instead of
+# truncating it, so enabling more segments than fit never silently hides
+# any of them. Splits only at " | " segment separators (never inside a
+# segment's own text or ANSI codes), so paired segments joined by a single
+# space (directory+git, timestamp+model) always stay on the same line.
+# Bash's ${#var} counts UTF-8 characters correctly under a UTF-8 locale
+# (unlike the byte-oriented awk used for hard truncation elsewhere), so no
+# multi-byte-aware scanning is needed here.
+wrap_line() {
+    local input="$1" max="$2"
+    local chunks=()
+    local remaining="$input"
+    while [[ "$remaining" == *" | "* ]]; do
+        chunks+=("${remaining%%" | "*}")
+        remaining="${remaining#*" | "}"
+    done
+    chunks+=("$remaining")
+
+    local phys_line="" phys_vlen=0
+    local out_lines=()
+    local chunk chunk_visible chunk_vlen
+    for chunk in "${chunks[@]}"; do
+        chunk_visible=$(printf '%s' "$chunk" | sed 's/\x1b\[[0-9;]*m//g')
+        chunk_vlen=${#chunk_visible}
+        if [[ -z "$phys_line" ]]; then
+            phys_line="$chunk"
+            phys_vlen=$chunk_vlen
+        elif [[ $((phys_vlen + 3 + chunk_vlen)) -le $max ]]; then
+            phys_line="${phys_line} | ${chunk}"
+            phys_vlen=$((phys_vlen + 3 + chunk_vlen))
+        else
+            out_lines+=("$phys_line")
+            phys_line="$chunk"
+            phys_vlen=$chunk_vlen
+        fi
+    done
+    [[ -n "$phys_line" ]] && out_lines+=("$phys_line")
+    printf '%s\n' "${out_lines[@]}"
+}
+
 # ── Segment renderers ─────────────────────────────────────────────────
 # Each function prints its content (no leading/trailing pipe).
 # The main loop adds separators between non-empty segments.
@@ -583,65 +623,79 @@ for line_segs in "${lines_arr[@]}"; do
         fi
     fi
 
-    # Truncate line if it exceeds terminal width
+    # If the line overflows the terminal width, either wrap it onto extra
+    # physical lines (the common case) or truncate it with "..." (only when
+    # this line uses flex — flex already claims the whole line's width to
+    # distribute space around its markers, which doesn't compose with
+    # wrapping onto multiple lines).
+    physical_lines=("$line_out")
     if [[ -n "$TERM_WIDTH" && "$TERM_WIDTH" -gt 0 ]]; then
         visible_text=$(echo -n "$line_out" | sed 's/\x1b\[[0-9;]*m//g')
         vlen=${#visible_text}
         max_len=$((TERM_WIDTH - 6))
-        
+
         if [[ $vlen -gt $max_len && $max_len -gt 3 ]]; then
-            # Truncate using awk to handle ANSI codes and multi-byte UTF-8
-            # characters (block-drawing bars, emoji) properly. LC_ALL=C forces
-            # byte-oriented string handling so awk never attempts locale-aware
-            # multibyte decoding (which can abort mid-sequence on some awk
-            # builds); UTF-8 lead-byte ranges are classified explicitly so a
-            # multi-byte character is always counted and copied as one unit,
-            # never split across the truncation boundary.
-            line_out=$(echo -n "$line_out" | LC_ALL=C awk -v max="$((max_len - 3))" '
-            BEGIN {
-                lead2 = sprintf("%c", 194); lead3 = sprintf("%c", 224)
-                lead4 = sprintf("%c", 240); leadmax = sprintf("%c", 245)
-            }
-            {
-                ansi = 0
-                len = 0
-                out = ""
-                n = length($0)
-                i = 1
-                while (i <= n) {
-                    c = substr($0, i, 1)
-                    if (ansi == 1) {
-                        out = out c
-                        if (c == "m") ansi = 0
-                        i++
-                        continue
-                    }
-                    if (c == "\033") {
-                        ansi = 1
-                        out = out c
-                        i++
-                        continue
-                    }
-                    seqlen = 1
-                    if (c >= lead4 && c < leadmax) seqlen = 4
-                    else if (c >= lead3 && c < lead4) seqlen = 3
-                    else if (c >= lead2 && c < lead3) seqlen = 2
-                    len++
-                    if (len > max) {
-                        out = out "..."
-                        break
-                    }
-                    out = out substr($0, i, seqlen)
-                    i += seqlen
+            if [[ $flex_count -gt 0 ]]; then
+                # Truncate using awk to handle ANSI codes and multi-byte UTF-8
+                # characters (block-drawing bars, emoji) properly. LC_ALL=C forces
+                # byte-oriented string handling so awk never attempts locale-aware
+                # multibyte decoding (which can abort mid-sequence on some awk
+                # builds); UTF-8 lead-byte ranges are classified explicitly so a
+                # multi-byte character is always counted and copied as one unit,
+                # never split across the truncation boundary.
+                line_out=$(echo -n "$line_out" | LC_ALL=C awk -v max="$((max_len - 3))" '
+                BEGIN {
+                    lead2 = sprintf("%c", 194); lead3 = sprintf("%c", 224)
+                    lead4 = sprintf("%c", 240); leadmax = sprintf("%c", 245)
                 }
-                print out "\033[0m"
-            }')
+                {
+                    ansi = 0
+                    len = 0
+                    out = ""
+                    n = length($0)
+                    i = 1
+                    while (i <= n) {
+                        c = substr($0, i, 1)
+                        if (ansi == 1) {
+                            out = out c
+                            if (c == "m") ansi = 0
+                            i++
+                            continue
+                        }
+                        if (c == "\033") {
+                            ansi = 1
+                            out = out c
+                            i++
+                            continue
+                        }
+                        seqlen = 1
+                        if (c >= lead4 && c < leadmax) seqlen = 4
+                        else if (c >= lead3 && c < lead4) seqlen = 3
+                        else if (c >= lead2 && c < lead3) seqlen = 2
+                        len++
+                        if (len > max) {
+                            out = out "..."
+                            break
+                        }
+                        out = out substr($0, i, seqlen)
+                        i += seqlen
+                    }
+                    print out "\033[0m"
+                }')
+                physical_lines=("$line_out")
+            else
+                physical_lines=()
+                while IFS= read -r wrapped_line; do
+                    physical_lines+=("$wrapped_line")
+                done < <(wrap_line "$line_out" "$max_len")
+            fi
         fi
     fi
 
-    # Print line with reset prefix and non-breaking spaces
-    # awk replaces all regular spaces with \xc2\xa0 (UTF-8 non-breaking space)
-    line_out=$(echo -n "$line_out" | awk '{gsub(/ /, "\xc2\xa0"); print}')
-
-    printf "\033[0m%s\n" "$line_out"
+    # Print each physical line with reset prefix and non-breaking spaces
+    # (awk replaces all regular spaces with \xc2\xa0, UTF-8 non-breaking space)
+    for line_out in "${physical_lines[@]}"; do
+        line_out=$(echo -n "$line_out" | awk '{gsub(/ /, "\xc2\xa0"); print}')
+        printf "\033[0m%s\n" "$line_out"
+    done
 done
