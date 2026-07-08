@@ -12,7 +12,7 @@ CONFIG_FILE="${STATUSLINE_CONFIG_FILE:-$HOME/.claude/statusline-config.json}"
 
 # All available segments: id|label|preview (ANSI-colored)
 # Using indexed arrays for bash 3.2 compatibility (macOS)
-SEGMENT_COUNT=33
+SEGMENT_COUNT=32
 SEG_ID=()
 SEG_LABEL=()
 SEG_PREVIEW=()
@@ -42,14 +42,13 @@ SEG_ID[21]="tokens_in";    SEG_LABEL[21]="Tokens Input";     SEG_PREVIEW[21]="In
 SEG_ID[22]="tokens_out";   SEG_LABEL[22]="Tokens Output";    SEG_PREVIEW[22]="Out: 3.4k"
 SEG_ID[23]="tokens_cached"; SEG_LABEL[23]="Tokens Cached";   SEG_PREVIEW[23]="Cache: 12k"
 SEG_ID[24]="tokens_total"; SEG_LABEL[24]="Tokens Total";     SEG_PREVIEW[24]="Tok: 30.6k"
-SEG_ID[25]="cache_hit_rate"; SEG_LABEL[25]="Cache Hit Rate"; SEG_PREVIEW[25]="Cache Hit: 87.0%"
-SEG_ID[26]="cache_read"; SEG_LABEL[26]="Cache Read"; SEG_PREVIEW[26]="Cache Read: 12k (64%)"
-SEG_ID[27]="cache_write"; SEG_LABEL[27]="Cache Write"; SEG_PREVIEW[27]="Cache Write: 3k (16%)"
-SEG_ID[28]="quota_5h_reset"; SEG_LABEL[28]="Quota 5h Reset *"; SEG_PREVIEW[28]="⏳ resets in 2h5m"
-SEG_ID[29]="quota_7d_reset"; SEG_LABEL[29]="Quota 7d Reset *"; SEG_PREVIEW[29]="⏳ resets in 2d3h"
-SEG_ID[30]="vim_mode"; SEG_LABEL[30]="Vim Mode"; SEG_PREVIEW[30]="🔵 NORMAL"
-SEG_ID[31]="worktree"; SEG_LABEL[31]="Git Worktree"; SEG_PREVIEW[31]="🌳 feature-x"
-SEG_ID[32]="api_duration"; SEG_LABEL[32]="API Duration"; SEG_PREVIEW[32]="⏱ api 1m12s"
+SEG_ID[25]="cache_read"; SEG_LABEL[25]="Cache Read"; SEG_PREVIEW[25]="Cache Read: 12k (64%)"
+SEG_ID[26]="cache_write"; SEG_LABEL[26]="Cache Write"; SEG_PREVIEW[26]="Cache Write: 3k (16%)"
+SEG_ID[27]="quota_5h_reset"; SEG_LABEL[27]="Quota 5h Reset *"; SEG_PREVIEW[27]="⏳ resets in 2h5m"
+SEG_ID[28]="quota_7d_reset"; SEG_LABEL[28]="Quota 7d Reset *"; SEG_PREVIEW[28]="⏳ resets in 2d3h"
+SEG_ID[29]="vim_mode"; SEG_LABEL[29]="Vim Mode"; SEG_PREVIEW[29]="🔵 NORMAL"
+SEG_ID[30]="worktree"; SEG_LABEL[30]="Git Worktree"; SEG_PREVIEW[30]="🌳 feature-x"
+SEG_ID[31]="api_duration"; SEG_LABEL[31]="API Duration"; SEG_PREVIEW[31]="⏱ api 1m12s"
 
 DEFAULT_SEGMENTS=(timestamp model style directory git context cost quota_5h quota_7d)
 

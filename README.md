@@ -100,7 +100,6 @@ bash ~/.claude/configure.sh
 | **Tokens Output** | `Out: 3.4k` | Total output tokens |
 | **Tokens Cached** | `Cache: 12k` | Tokens read/created in cache this turn |
 | **Tokens Total** | `Tok: 30.6k` | Total tokens (input + output) |
-| **Cache Hit Rate** | `Cache Hit: 87.0%` | Prompt cache hit rate (cache reads vs. cache writes) |
 | **Cache Read** | `Cache Read: 12k (64%)` | Cache read tokens served from cache, with % share of context |
 | **Cache Write** | `Cache Write: 3k (16%)` | Cache write tokens written to cache, with % share of context |
 | **Quota 5h Reset** \* | `⏳ resets in 2h5m` | Time remaining until the 5-hour rate limit window resets |

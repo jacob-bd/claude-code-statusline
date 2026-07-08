@@ -415,14 +415,6 @@ render_tokens_total() {
     [[ -n "$fmt" && "$total" -gt 0 ]] && printf "Tok: %s" "$fmt"
 }
 
-render_cache_hit_rate() {
-    local read=$J_OLD_CACHE_READ create=$J_OLD_CACHE_CREATE
-    local denom=$((read + create))
-    [[ $denom -le 0 ]] && return
-    local pct; pct=$(awk -v r="$read" -v d="$denom" 'BEGIN{printf "%.1f", (r/d)*100}')
-    printf "Cache Hit: %s%%" "$pct"
-}
-
 render_cache_read() {
     local read=$J_OLD_CACHE_READ create=$J_OLD_CACHE_CREATE input=$J_OLD_INPUT
     [[ -z "$read" || "$read" -le 0 ]] 2>/dev/null && return
@@ -553,7 +545,6 @@ for line_segs in "${lines_arr[@]}"; do
             tokens_out)  output=$(render_tokens_out) ;;
             tokens_cached) output=$(render_tokens_cached) ;;
             tokens_total) output=$(render_tokens_total) ;;
-            cache_hit_rate) output=$(render_cache_hit_rate) ;;
             cache_read) output=$(render_cache_read) ;;
             cache_write) output=$(render_cache_write) ;;
             quota_5h_reset) output=$(render_quota_5h_reset) ;;
