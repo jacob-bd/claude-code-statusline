@@ -15,10 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`STATUSLINE_CONFIG_FILE`**: Environment variable override for the config path, enabling isolated testing.
 
 ### Fixed
-- Wizard preview misalignment on multi-line statuslines.
-- Wizard preview using a stale `$COLUMNS` instead of the live terminal width.
-- Truncation crashing/garbling on multi-byte UTF-8 characters.
-- Incorrect README description for the Duration segment.
+- Incorrect README description for the Duration segment (was documented with API Duration's description).
 
 ## [0.2.0] - 2026-07-07
 
