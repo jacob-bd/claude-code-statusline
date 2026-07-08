@@ -20,9 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Truncation crashing/garbling on multi-byte UTF-8 characters.
 - Incorrect README description for the Duration segment.
 
-### Removed
-- **`cache_hit_rate` segment**: Computed cumulative `cache_read / (cache_read + cache_creation)`, which converges to ~100% within the first few turns of any session and stays pinned there regardless of actual cache efficiency, making it non-actionable. `cache_read` and `cache_write` already expose the same underlying counts with a % share, without the misleading "rate" framing.
-
 ## [0.2.0] - 2026-07-07
 
 ### Added
