@@ -1,9 +1,9 @@
 # Claude Code Configurable Statusline
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
-![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
 
-A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 20 other configurable segments.
+A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 28 other configurable segments.
 
 ![Claude Code Statusline](assets/statusline.png)
 

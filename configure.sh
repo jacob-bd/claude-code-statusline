@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ── Claude Code Statusline Configurator ───────────────────────────────
-# Version: 0.2.0
+# Version: 0.3.0
 # Interactive wizard to customize which segments appear in the statusline.
 # Usage: bash configure.sh
 #

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-08
+
+### Added
+- **Cursor-Driven Configuration Wizard**: Rewrote `configure.sh`'s main loop as an arrow-key-driven editor — navigate enabled segments with `↑`/`↓`, add/remove/reorder in place, and insert a line break at the cursor with `n`.
+- **Live Preview Engine**: The wizard now shells out to the real renderer for an always-accurate, cached live preview as you edit.
+- **Auto-Wrap**: Segments that overflow the terminal width now wrap onto a new line automatically instead of truncating with `...`.
+- **New Segments**: `cache_read`, `cache_write`, `quota_5h_reset`, `quota_7d_reset`, `vim_mode`, `worktree`, `api_duration`, `tokens_in`, `tokens_out`, `tokens_cached`, `tokens_total`, `flex`, `newline`.
+- **`STATUSLINE_CONFIG_FILE`**: Environment variable override for the config path, enabling isolated testing.
+
+### Fixed
+- Wizard preview misalignment on multi-line statuslines.
+- Wizard preview using a stale `$COLUMNS` instead of the live terminal width.
+- Truncation crashing/garbling on multi-byte UTF-8 characters.
+- Incorrect README description for the Duration segment.
+
+### Removed
+- **`cache_hit_rate` segment**: Computed cumulative `cache_read / (cache_read + cache_creation)`, which converges to ~100% within the first few turns of any session and stays pinned there regardless of actual cache efficiency, making it non-actionable. `cache_read` and `cache_write` already expose the same underlying counts with a % share, without the misleading "rate" framing.
+
 ## [0.2.0] - 2026-07-07
 
 ### Added

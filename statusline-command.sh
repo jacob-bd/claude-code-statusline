@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ── Claude Code Statusline ────────────────────────────────────────────
-# Version: 0.2.0
+# Version: 0.3.0
 # Configurable statusline for Claude Code.
 # Run `bash configure.sh` to customize which segments are displayed.
 # Config: ~/.claude/statusline-config.json
