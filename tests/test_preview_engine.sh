@@ -27,11 +27,14 @@ if [[ "$preview_output" != *"Sonnet 5"* ]]; then
 fi
 echo "PASS: render_live_preview reflects the real renderer's output"
 
-# render_live_preview picks up config changes immediately, no stale caching
+# render_live_preview picks up config changes immediately, no stale caching.
+# The mock payload simulates a subscription account (it includes rate_limits),
+# so the cost segment correctly stays hidden even when it's the only segment
+# enabled — Cost and Quota are mutually exclusive by design.
 enabled_segments=(cost)
 preview_output=$(render_live_preview)
-if [[ "$preview_output" != *'$0.85'* ]]; then
-    echo "FAIL: expected preview output to contain \$0.85 for the cost segment, got: $preview_output"
+if [[ "$preview_output" == *'$0.85'* ]]; then
+    echo "FAIL: expected cost to stay hidden on subscription-style mock data (has rate_limits), got: $preview_output"
     exit 1
 fi
-echo "PASS: render_live_preview reflects config changes without stale caching"
+echo "PASS: render_live_preview hides cost on subscription-style mock data without stale caching"

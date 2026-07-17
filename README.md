@@ -1,7 +1,7 @@
 # Claude Code Configurable Statusline
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
-![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)
 
 A highly customizable statusline for [Claude Code](https://claude.com/claude-code) with an interactive setup wizard. Displays accurate context usage, API costs, subscription quotas (5-hour and 7-day), and 28 other configurable segments.
 
@@ -13,7 +13,7 @@ For details on recent changes, see the [Changelog](CHANGELOG.md).
 
 - **Interactive Setup Wizard**: Terminal UI to easily toggle and reorder segments.
 - **Accurate Context & Quota Tracking**: Uses Claude Code's native JSON payload for exact context percentage and Pro/Max subscriber rate limits.
-- **Smart Cost Display**: Automatically hides API costs if you're on a Claude subscription and have quota bars enabled.
+- **Smart Cost Display**: Automatically hides API costs if you're on a Claude subscription.
 - **Multi-line & Flex Layouts**: Build beautiful, right-aligned, multi-line status displays directly in your terminal.
 - **Auto-Wrapping**: Segments that don't fit on one line automatically continue on the next — nothing gets silently truncated.
 - **33 Available Segments**: Choose from Model, Timestamp, Git, Token usage, Output Style, Effort, Quotas, PR Info, Cache Metrics, and more.

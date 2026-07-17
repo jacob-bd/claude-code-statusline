@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ── Claude Code Statusline Configurator ───────────────────────────────
-# Version: 0.3.0
+# Version: 0.3.1
 # Interactive wizard to customize which segments appear in the statusline.
 # Usage: bash configure.sh
 #
@@ -121,12 +121,14 @@ setup_terminal() {
         SAVED_STTY=$(stty -g 2>/dev/null || echo "")
         stty -icanon -echo min 1 time 0 2>/dev/null || true
     fi
+    printf '\033[?25l'
 }
 
 restore_terminal() {
     if [[ -n "${SAVED_STTY:-}" ]]; then
         stty "$SAVED_STTY" 2>/dev/null || true
     fi
+    printf '\033[?25h'
 }
 
 move_segment_up() {
@@ -342,9 +344,17 @@ get_cached_preview() {
 
 # ── Draw wizard screen ────────────────────────────────────────────────
 
+# Paint a rendered frame in place: home the cursor (no blanking), clear the
+# tail of every line as it's overwritten, then clear anything left below.
+# This avoids the black-flash of a full \033[2J screen erase on every redraw.
+paint() {
+    local frame="$1"
+    printf '\033[H%s\033[0J' "${frame//$'\n'/$'\033[K'$'\n'}"
+}
+
 draw_main_screen() {
     local cur="$1" mode="$2"
-    printf '\033[2J\033[H\n'
+    printf '\n'
     printf '  \033[1;36m╔══════════════════════════════════════════════════════╗\033[0m\n'
     printf '  \033[1;36m║\033[0m  \033[1mClaude Code Statusline Configurator\033[0m               \033[1;36m║\033[0m\n'
     printf '  \033[1;36m╚══════════════════════════════════════════════════════╝\033[0m\n\n'
@@ -381,7 +391,7 @@ draw_main_screen() {
 
 draw_picker_screen() {
     local sel="$1" checked_ids="$2"
-    printf '\033[2J\033[H\n'
+    printf '\n'
     printf '  \033[1;36m── Add a segment \xe2\x80\x94 \xe2\x86\x91/\xe2\x86\x93 select \xc2\xb7 Space toggle \xc2\xb7 Enter add \xc2\xb7 Esc cancel \xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\xe2\x94\x80\033[0m\n\n'
 
     local available; available=($(get_available_segment_ids))
@@ -413,12 +423,16 @@ main() {
     local picker_cursor=0
     local picker_checked=()
 
+    printf '\033[2J\033[H'
+
     while true; do
+        local frame
         if [[ "$mode" == "picker" ]]; then
-            draw_picker_screen "$picker_cursor" "${picker_checked[*]}"
+            frame=$(draw_picker_screen "$picker_cursor" "${picker_checked[*]}")
         else
-            draw_main_screen "$cursor" "$mode"
+            frame=$(draw_main_screen "$cursor" "$mode")
         fi
+        paint "$frame"
 
         local key; key=$(read_key)
 

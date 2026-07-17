@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-16
+
+### Added
+- **AI-Agent Config Reference**: `statusline-command.sh` now documents its config JSON schema and the full list of valid segment IDs in a header comment, so an AI agent (e.g. Claude Code itself) can edit `~/.claude/statusline-config.json` directly on request instead of trying to drive the interactive wizard non-interactively.
+
+### Fixed
+- **Configurator Screen Flicker**: `configure.sh` cleared the entire terminal (`\033[2J`) on every arrow-key press, causing a visible black flash and slow repaint while navigating. It now repaints in place (home cursor, per-line clear-to-end, clear-below) and hides the cursor during redraws, eliminating the flicker.
+- **API Cost Showing on Subscription**: The cost segment only auto-hid for subscription accounts when a `quota_5h`/`quota_7d` segment was also enabled. It now hides whenever subscription rate-limit data is present, regardless of which segments are enabled, matching the documented Cost-vs-Quota mutual exclusivity.
+
 ## [0.3.0] - 2026-07-08
 
 ### Added

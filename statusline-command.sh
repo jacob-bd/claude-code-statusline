@@ -1,10 +1,73 @@
 #!/bin/bash
 
 # ── Claude Code Statusline ────────────────────────────────────────────
-# Version: 0.3.0
+# Version: 0.3.1
 # Configurable statusline for Claude Code.
 # Run `bash configure.sh` to customize which segments are displayed.
 # Config: ~/.claude/statusline-config.json
+#
+# ── For AI agents ───────────────────────────────────────────────────
+# If a user asks you (Claude) to change their statusline — add/remove/
+# reorder segments — edit the config JSON below directly. Do NOT run
+# `configure.sh` non-interactively: it's an arrow-key TUI wizard that
+# reads raw keypresses and will hang waiting for terminal input.
+#
+# Config file: ~/.claude/statusline-config.json
+#   (override path: $STATUSLINE_CONFIG_FILE)
+#
+# Schema (all fields optional; this example is also the built-in default):
+#   {
+#     "segments": ["timestamp","model","style","directory","git","context","cost","quota_5h","quota_7d"],
+#     "context_bar_width": 20,
+#     "bar_width": 10
+#   }
+#   - segments: ordered list of segment IDs below; order = left-to-right
+#     display order. Unknown IDs are silently ignored.
+#   - context_bar_width: width of the context-usage bar (default 20).
+#   - bar_width: width of the quota bars (default 10).
+#
+# Valid segment IDs (id — description):
+#   timestamp       — current time, e.g. [10:05:06]
+#   model           — model display name, e.g. Sonnet 5
+#   effort          — reasoning effort level, e.g. med
+#   style           — output style, e.g. concise
+#   directory       — current project directory name
+#   git             — git branch + dirty/staged status
+#   context         — context window usage bar + % + tokens left
+#   context_pct     — context window usage, % + tokens left, no bar
+#   cost            — API cost in USD (usage-based billing only, see below)
+#   quota_5h        — 5-hour Pro/Max quota bar + % (subscription only, see below)
+#   quota_7d        — 7-day Pro/Max quota bar + % (subscription only, see below)
+#   quota_5h_pct    — 5-hour quota, % only, no bar (subscription only)
+#   quota_7d_pct    — 7-day quota, % only, no bar (subscription only)
+#   quota_5h_reset  — time until the 5-hour quota resets (subscription only)
+#   quota_7d_reset  — time until the 7-day quota resets (subscription only)
+#   duration        — total session wall-clock duration
+#   api_duration    — total API call duration
+#   lines           — lines added/removed this session
+#   session         — session name
+#   thinking        — whether extended thinking is on
+#   version         — Claude Code version
+#   pr              — pull request number + review state
+#   tokens_in       — input tokens used
+#   tokens_out      — output tokens used
+#   tokens_cached   — cached tokens used
+#   tokens_total    — total tokens used
+#   cache_read      — prompt-cache read tokens + %
+#   cache_write     — prompt-cache write tokens + %
+#   vim_mode        — vim keybinding mode (NORMAL/INSERT/etc.)
+#   worktree        — current git worktree name
+#   flex            — spacer that pushes everything after it to the right edge
+#   newline         — starts a new line in the statusline (repeatable)
+#
+# Behavior notes:
+#   - Cost and Quota are mutually exclusive by account type, not by config:
+#     `cost` only renders on usage-based/API billing and auto-hides on a
+#     Pro/Max subscription; the `quota_*` segments only render on a
+#     subscription. It's safe to enable both — whichever doesn't apply to
+#     the account just stays hidden.
+#   - Changes take effect on Claude Code's next prompt render; no restart
+#     needed.
 
 # Read JSON input from stdin
 input=$(cat)
@@ -302,10 +365,11 @@ render_context() {
 
 render_cost() {
     local cost_display
-    if (is_enabled "quota_5h" || is_enabled "quota_7d" || is_enabled "quota_5h_pct" || is_enabled "quota_7d_pct"); then
-        if [[ -n "$J_QUOTA_5H_PCT" && "$J_QUOTA_5H_PCT" != "null" ]]; then return; fi
-        if [[ -n "$J_QUOTA_7D_PCT" && "$J_QUOTA_7D_PCT" != "null" ]]; then return; fi
-    fi
+    # On a Pro/Max subscription Claude Code reports rate_limits, so the
+    # API-style dollar cost isn't meaningful — hide it regardless of which
+    # segments are enabled (Cost and Quota are mutually exclusive by design).
+    if [[ -n "$J_QUOTA_5H_PCT" && "$J_QUOTA_5H_PCT" != "null" ]]; then return; fi
+    if [[ -n "$J_QUOTA_7D_PCT" && "$J_QUOTA_7D_PCT" != "null" ]]; then return; fi
     [[ "$J_COST" == "0" || "$J_COST" == "null" ]] && return
     if (( $(echo "$J_COST < 0.01" | bc -l) )); then
         cost_display=$(printf "%.4f" "$J_COST")
